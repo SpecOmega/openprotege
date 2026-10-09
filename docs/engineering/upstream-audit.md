@@ -42,7 +42,7 @@ git ls-remote https://github.com/protegeproject/webprotege.git HEAD refs/heads/m
 - `license.txt` 包含 Stanford Board of Trustees 版权声明及 BSD 2-Clause 风格条款。传递依赖许可证未审计。（SOURCE-OBSERVED）
 - 根 POM 坐标为 `edu.stanford.protege:webprotege:5.0.0-SNAPSHOT`；根 compiler release 为 11，`webprotege-shared` 模块配置 release 8，并声明 AutoValue 1.7.1。（SOURCE-OBSERVED）
 - 源码包含 access manager、角色及项目授权实现/测试；`AccessManagerImpl_IT`、`ProjectAccessManagerImpl_IT` 为集成测试源码。存在代码/测试不等于通过权限安全审计。（SOURCE-OBSERVED）
-- Compose 文件声明 MongoDB `mongo:4.1-bionic`；本次使用该版本的临时容器。首次无数据库构建测试连接失败；提供 Mongo 后，JDK 25 构建仍在编译 `AutoValue_*` 生成类型处失败。JDK 21 初次重试有 5 个模块共 4091 tests、0 failures、0 errors、0 skipped；随后 package 因项目 GitHub Maven 仓库 HTTP 504 阻塞，无最终 Maven 退出状态。该 endpoint 后续返回 HTTP 200，本轮已启动恢复后完整 package 重试，执行结果待记录。当前不能断言完整 package 成功或失败。（VERIFIED：日志及探测命令，见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md)）
+- Compose 文件声明 MongoDB `mongo:4.1-bionic`；本次使用该版本的临时容器。首次无数据库构建测试连接失败；提供 Mongo 后，JDK 25 构建仍在编译 `AutoValue_*` 生成类型处失败。JDK 21 初次重试有 5 个模块共 4091 tests、0 failures、0 errors、0 skipped；随后 package 因项目 GitHub Maven 仓库 HTTP 504 阻塞，无最终 Maven 退出状态。另一次恢复后重试在环境重启时失去日志和容器，也无最终结果。随后基于固定提交的 Aliyun Central mirror 重试完成完整 `clean package`：9/9 模块成功、4124 tests、0 failures、0 errors、0 skipped，Maven 退出码 0。该运行使用已有 `$HOME/.m2` 缓存，未证明空缓存或 Aliyun 对专用仓库的替代能力。（VERIFIED；证据、命令及限制见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md) 与 E-27）
 - Web 的文件下载参数测试源码覆盖多种序列化格式选择；不能替代真实项目上传/下载往返保真或跨端交换测试。（SOURCE-OBSERVED）
 
 ## 与 OpenProtégé 当前检出的关系
@@ -57,7 +57,7 @@ OpenProtégé 当前检出含 README 与工程/需求审计文档，但没有应
 
 | 验证 | 状态 | 尚缺证据 |
 |---|---|---|
-| 上游构建、测试及其日志/退出码 | Desktop Maven 验证 VERIFIED；WebProtégé JDK 21 恢复后 package 重试进行中 | Desktop 通过；Web JDK 21 初次有 4091 项已完成模块测试，后续 package 遇 HTTP 504；endpoint 已恢复 HTTP 200，完整重试尚未结束 |
+| 上游构建、测试及其日志/退出码 | Desktop 与 WebProtégé Maven 构建及测试 VERIFIED | Desktop 通过；Web JDK 21 + Aliyun Central mirror 完整 package 通过（9 模块、4124 tests、0 failures/errors/skips）；空缓存依赖获取与 Web 服务运行仍未验证 |
 | OWLAPI 单样例 RDF/XML↔Turtle 文件往返 | VERIFIED（固定 `pizza.owl`） | 930 个公理、本体 ID、注释和 imports 精确保持；不涵盖编辑器或 Web 产品流程 |
 | 编辑器/应用级 OWL/RDF 导入—编辑—保存—导出—再加载 | UNVERIFIED | 未启动桌面 GUI 或运行编辑器工作流 |
 | Desktop 与 Web 数据交换 | UNVERIFIED | 未配置或运行互操作 PoC |

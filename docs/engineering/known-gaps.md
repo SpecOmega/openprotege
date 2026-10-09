@@ -11,7 +11,7 @@
 | 已建立产品决策记录与需求基线草案，但尚未冻结详细角色矩阵、OWL 2 Profile、格式保真判据和 API/冲突策略。 | SOURCE-OBSERVED / UNVERIFIED | 评审并冻结需求草案，将未决技术项继续关联 PoC 与 ADR。（PROPOSED） |
 | 没有项目许可证，也没有代码来源或第三方依赖清单。 | VERIFIED | 明确项目许可证与上游/依赖复用策略；复用代码前逐项审查许可证和归属。（PROPOSED） |
 | 没有可供维护、构建、测试或运行的应用实现。 | VERIFIED | MVP 方案必须从真实技术选择和可验证 PoC 开始，不得宣称已有产品能力。（PROPOSED） |
-| OpenProtégé 仍未集成 Protégé Desktop/WebProtégé；Desktop 固定提交构建通过，Web 完整 package 首次受 HTTP 504 阻塞、恢复后重试进行中；OWLAPI 单样例格式往返 PoC 已通过。 | VERIFIED / BLOCKED | 记录恢复后固定提交构建结果；评估 Web 专用仓库/替代维护仓库，继续验证编辑器级格式往返、插件、桌面/Web 交换和权限，再作架构选择。（PROPOSED） |
+| OpenProtégé 仍未集成 Protégé Desktop/WebProtégé；Desktop 固定提交构建通过；WebProtégé 固定提交使用 Aliyun Central mirror 和已有 Maven 缓存后完整 package 成功；OWLAPI 单样例格式往返 PoC 已通过。 | VERIFIED（上游构建） / SOURCE-OBSERVED（当前无集成） | 评估 Web 专用仓库/替代维护仓库及空缓存依赖获取，再验证编辑器级格式往返、插件、桌面/Web 交换和权限，之后作架构选择。（PROPOSED） |
 
 ## P1：功能与质量证据缺口
 
@@ -33,7 +33,7 @@
 - 没有测试套件、CI、构建/运行脚本、部署手册或发布工作流。（VERIFIED）
 - 中英文项目 README 和中文工程/需求文档已存在；英文工程/需求文档翻译仍 Pending，尚无完整双语开发、架构和部署手册。（VERIFIED：当前文档树）
 - 没有截图、下载物、正式版本或生产部署配置。（SOURCE-OBSERVED）
-- 上游固定提交已完整克隆；Desktop Maven 构建通过；OWLAPI 4.5.29 对固定 `pizza.owl` 的文件格式往返通过。WebProtégé JDK 21 + MongoDB 4.1 初次重试完成 4091 项模块测试，但 package 曾被项目 GitHub Maven 仓库 HTTP 504 阻塞；endpoint 后恢复到 HTTP 200，新的 package 重试正在执行。应用运行、编辑器流程、桌面/Web 交换、授权安全、插件兼容与完整传递依赖许可证兼容仍未验证。（部分 VERIFIED、BLOCKED、UNVERIFIED；具体范围见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md) 与 [upstream-audit.md](./upstream-audit.md)）
+- 上游固定提交已完整克隆；Desktop Maven 构建通过；WebProtégé JDK 21 + MongoDB 4.1 使用 Aliyun Central mirror 和已有 Maven 缓存完成 9 模块 `clean package`，7 个模块汇总 4124 项测试、0 failures/errors/skips；此前 HTTP 504 重试未取得最终结果。OWLAPI 4.5.29 对固定 `pizza.owl` 的文件格式往返通过。空缓存依赖获取、应用运行、编辑器流程、桌面/Web 交换、授权安全、插件兼容与完整传递依赖许可证兼容仍未验证。（VERIFIED 构建结果；其余为 BLOCKED/UNVERIFIED，详见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md) 与 [upstream-audit.md](./upstream-audit.md)）
 
 ## 边界说明
 
@@ -44,4 +44,4 @@
 
 ## 下一项明确任务
 
-先确认 WebProtégé 依赖阻塞的具体 artifact 及仓库可用替代途径；仅在依赖可获取后，重试固定提交并保留 Maven 最终退出状态。随后验证 Desktop/Web 文件交换和 Web 服务端授权；完善更多 OWL 2 格式样例、编辑器级往返、完整依赖许可证审查与 OpenProtégé 最终许可证决策。（PROPOSED；尚未完成）
+验证 WebProtégé 固定提交在干净 Maven 缓存下的依赖获取，判断 Aliyun Central mirror 和 POM 专用仓库的实际覆盖范围；随后验证 Desktop/Web 文件交换和 Web 服务端授权，完善更多 OWL 2 格式样例、编辑器级往返、完整依赖许可证审查与 OpenProtégé 最终许可证决策。（PROPOSED；尚未完成）

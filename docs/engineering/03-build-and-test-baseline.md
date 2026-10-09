@@ -63,7 +63,7 @@ java --class-path "$(cat /tmp/owlapi-poc-classpath.txt)" docs/engineering/poc/Ow
 
 ## WebProtégé
 
-执行了三次 `clean package` 检查，必须区分工具链和数据库条件：
+执行了多次 `clean package` 检查，必须区分工具链、数据库和依赖仓库条件：
 
 | 检查 | 命令/条件 | 结果 |
 |---|---|---|
@@ -71,9 +71,40 @@ java --class-path "$(cat /tmp/owlapi-poc-classpath.txt)" docs/engineering/poc/Ow
 | 提供上游 Compose 指定数据库后的检查 | JDK `25.0.4.1`、Maven `3.9.16`；MongoDB `4.1.13` 已运行；`mvn -B -ntp clean package` | 退出码 1，`BUILD FAILURE`；`webprotege-shared` 编译未生成源码所引用的 `AutoValue_*` 类型。 |
 | 注解处理诊断 | 相同 JDK/Mongo；`mvn -B -ntp clean package -Dmaven.compiler.proc=full` | 退出码 1；同类 `AutoValue_*` 缺失仍在，不能据此断定该版本的 JDK/注解处理兼容问题已解决。 |
 | JDK 21 初次重试 | 容器 `maven:3.9.16-eclipse-temurin-21`、MongoDB `4.1.13`；`mvn -B -ntp clean package` | 未得到完整 Maven 退出码，也没有 `BUILD SUCCESS`/`BUILD FAILURE` 汇总。5 个已完成模块报告 4091 tests、0 failures、0 errors、0 skipped；随后 Maven 依赖解析停在项目 GitHub Maven 仓库。约 19 分钟无测试进展后停止隔离容器。完整 package 此次执行未完成，不能把部分测试计作全套通过。 |
-| JDK 21 恢复后重试 | 容器 `maven:3.9.16-eclipse-temurin-21`、MongoDB `4.1.13`；`mvn -B -ntp clean package` | 在仓库 endpoint 又一次探测 HTTP 504 后，随后探测得到 HTTP 200（21.46 秒），故启动新的 package 重试；容器 Maven 命令正在执行，最终退出码/测试结果尚待记录。 |
+| JDK 21 endpoint 恢复后重试 | 容器 `maven:3.9.16-eclipse-temurin-21`、MongoDB `4.1.13`；`mvn -B -ntp clean package` | endpoint 恢复后启动；日志和容器随开发容器重启而丢失，未取得最终退出码。不能据此报告成功或失败。 |
+| JDK 21 Aliyun Central 镜像重试 | 容器 `maven:3.9.16-eclipse-temurin-21`、MongoDB `4.1.13`；`mvn -s /repo/maven-settings-aliyun.xml -B -ntp -Drelease.signing.disabled=true clean package` | 完整 9 模块 reactor `BUILD SUCCESS`，Maven 退出码 0，用时 22:18；7 个模块测试汇总合计 4124 tests、0 failures、0 errors、0 skipped。Web client 的 GWT 编译完成 14 个 permutations。日志 `/tmp/openprotege-webprotege-aliyun-retry/aliyun-clean-package.log`。 |
+| Aliyun + 空 Maven 缓存重试 | 固定 SHA；JDK `21.0.12.1`、Maven `3.9.16`、MongoDB `4.1.13`；独立空目录 `/tmp/openprotege-webprotege-empty-m2-20261009` 作为本地仓库；Central 映射 Aliyun | Maven 开始项目扫描并向远端发起请求；线程栈显示在读取 HTTP 响应头/校验 artifact checksum 时等待。开发环境会话中断时命令、容器和日志均未保留最终错误或退出状态；没有可靠证据标识当时的具体 artifact。结果为 BLOCKED / 无最终状态，不得视为构建失败或通过。 |
 
-JDK 25 编译错误说明环境/编译处理不兼容的可能性，不足以单独判定上游源码缺陷。JDK 21 初次重试日志位于 `/tmp/openprotege-stage1-poc.9qWMGG/webprotege-clean-package-jdk21-mongo4.1.log`；当时的 shell 用 Docker 管道保存输出且未启用 pipefail，故 wrapper 的退出码不能代表 Maven 退出码。随后 endpoint 先返回 HTTP 504（11.04 秒）再返回 HTTP 200（21.46 秒），遂开启恢复后重试，日志位于 `/tmp/openprotege-stage1-poc.9qWMGG/webprotege-clean-package-jdk21-mongo4.1-retry.log`；该命令完成前不得报告结果。探测命令为 `curl -sS -L --connect-timeout 10 --max-time 25 -o /dev/null -w 'Protege Maven repo HTTP %{http_code}; time %{time_total}s\\n' https://github.com/protegeproject/mvn-repo/raw/master/releases/`；Maven Central 根地址两次均返回 HTTP 200。（VERIFIED；E-25）即使构建成功，也不等同于部署、格式往返、真实协作或权限隔离测试。
+JDK 25 编译错误说明环境/编译处理不兼容的可能性，不足以单独判定上游源码缺陷。JDK 21 初次重试日志位于 `/tmp/openprotege-stage1-poc.9qWMGG/webprotege-clean-package-jdk21-mongo4.1.log`；当时的 shell 用 Docker 管道保存输出且未启用 pipefail，故 wrapper 的退出码不能代表 Maven 退出码。探测命令为 `curl -sS -L --connect-timeout 10 --max-time 25 -o /dev/null -w 'Protege Maven repo HTTP %{http_code}; time %{time_total}s\\n' https://github.com/protegeproject/mvn-repo/raw/master/releases/`；端点先后返回 HTTP 504（11.04 秒）和 HTTP 200（21.46 秒），Maven Central 根地址两次均返回 HTTP 200。（VERIFIED；E-25）
+
+Aliyun 重试使用一次性 Maven settings，将 `central` 映射到 `https://maven.aliyun.com/repository/central`；WebProtégé POM 中的 Sonatype snapshots 和 Protege GitHub Maven 仓库仍保留。构建容器挂载了宿主 `$HOME/.m2` 缓存，因此本次成功**不证明**空缓存下所有依赖均可由 Aliyun 获取，也不证明 Aliyun 替代了 Protege 专用仓库或排除了该仓库的 HTTP 504。构建日志还包含 JAXB 旧 POM 的 `${tools.jar}` `systemPath` 模型错误行及 GWT 安全模板警告，但 reactor 最终成功；不得将这些日志行隐去，也不应误记为 Maven 构建失败。复现命令和环境记录见 E-27。即使构建成功，也不等同于部署、格式往返、真实协作或权限隔离测试。
+
+空缓存重试使用单独创建的 `/tmp/openprotege-webprotege-empty-m2-20261009`，命令额外传入 `-Dmaven.repo.local=/maven-cache` 并只挂载该空缓存。容器运行期间观察到 81 个 Aliyun-central 标记的构件已下载，但 Maven 随后停留在 HTTP 响应/校验和获取；开发环境重启导致执行上下文与隔离 Mongo 容器终止，日志只保留 `[INFO] Scanning for projects...`，未有完整 Maven 输出或退出码。由于未能关联挂起请求到具体坐标，不推断是 Aliyun、Protege 专用仓库或网络中的哪一方导致阻塞，也不虚构失败 artifact。
+
+本次临时 settings 内容：
+
+```xml
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+  <mirrors>
+    <mirror>
+      <id>aliyun-central</id>
+      <mirrorOf>central</mirrorOf>
+      <url>https://maven.aliyun.com/repository/central</url>
+    </mirror>
+  </mirrors>
+</settings>
+```
+
+实际 Maven 命令在固定 SHA 的临时克隆目录中执行：
+
+```text
+docker run --rm --network host \
+  -v /tmp/openprotege-webprotege-aliyun-retry:/repo \
+  -v "$HOME/.m2:/root/.m2" \
+  -w /repo maven:3.9.16-eclipse-temurin-21 \
+  mvn -s /repo/maven-settings-aliyun.xml -B -ntp \
+  -Drelease.signing.disabled=true clean package
+```
 
 ## 边界与可复现性
 

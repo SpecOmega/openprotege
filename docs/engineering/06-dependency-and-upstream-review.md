@@ -17,7 +17,7 @@ OpenProtégé 当前 HEAD：`725e9d21bd36d973211e65e67d248ef4a562f10c`。初始�
 | 上游仓库 | 本次解析的固定 SHA | 来源证据 | 观察结果与限制 |
 |---|---|---|---|
 | `protegeproject/protege` | `bf03cccc65ea664e139d6829bba6d209ef58ee55`，提交时间 `2026-09-23T22:12:40+01:00` | 完整克隆并 detached checkout；HEAD 复核；固定提交根目录、POM、README、许可证、CI、测试。 | Desktop Maven `clean verify` 在 JDK 21.0.12.1/Maven 3.9.16 下退出码 0；531 tests、0 failures、0 errors、3 skipped。OWLAPI 4.5.29 单样例 RDF/XML↔Turtle 往返 PoC 通过；未运行 GUI、编辑器交互或互操作。 |
-| `protegeproject/webprotege` | `1e84fa02aef68be45f18c08dbeae94bec9b04a41`，提交时间 `2026-07-28T13:56:32-07:00` | 完整克隆并 detached checkout；HEAD 复核；固定提交根目录、POM、README、许可证、测试。 | JDK 25 两次 `clean package` 失败（先因 Mongo 缺失、后因 AutoValue 类型未生成）；JDK 21 + MongoDB 4.1.13 重试完成 5 个模块的 4091 项测试且无失败，但完整 package 阶段在项目 GitHub Maven 仓库 HTTP 504 后阻塞并停止，未取得 Maven 最终状态。README 称该仓库正被细粒度仓库取代。 |
+| `protegeproject/webprotege` | `1e84fa02aef68be45f18c08dbeae94bec9b04a41`，提交时间 `2026-07-28T13:56:32-07:00` | 完整克隆并 detached checkout；HEAD 复核；固定提交根目录、POM、README、许可证、测试。 | JDK 25 两次 `clean package` 失败（先因 Mongo 缺失、后因 AutoValue 类型未生成）；JDK 21 + MongoDB 4.1.13 + Aliyun Central mirror 的完整 `clean package` 成功，9/9 模块、4124 tests、0 failures/errors/skips，Maven 退出码 0（E-27）。构建使用现有 Maven 本地缓存，且 POM 自定义仓库仍启用；没有验证空缓存或替代 Protege 仓库。README 称该仓库正被细粒度仓库取代。 |
 
 逐项来源和措辞边界见 [upstream-audit.md](./upstream-audit.md)。
 
@@ -37,6 +37,6 @@ OpenProtégé 当前 HEAD：`725e9d21bd36d973211e65e67d248ef4a562f10c`。初始�
 
 ## 决策前 PoC
 
-已完成固定提交克隆、部分构建/测试 PoC，以及基于 OWLAPI 4.5.29 的独立样例格式往返 PoC；WebProtégé JDK 21 package 仍受项目 Maven 仓库 HTTP 504 阻塞，端点复核见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md)。下一步解决依赖获取阻塞，再验证编辑器/应用级导入—编辑—保存—导出往返、插件扩展点、Desktop/Web 文件交换、Web 服务端认证授权与项目隔离；解析完整依赖树及许可证。保存完整命令、环境、可得退出状态、日志和测试数据哈希。（PROPOSED；未完成部分为 UNVERIFIED/BLOCKED）
+已完成固定提交克隆、Desktop 和 WebProtégé 构建/测试 PoC，以及基于 OWLAPI 4.5.29 的独立样例格式往返 PoC。WebProtégé JDK 21 完整 package 已在 Aliyun Central mirror 配置和当前本地依赖缓存下通过；此结果不证明空缓存可构建，也不证明镜像替代了专用仓库。下一步评估固定 WebProtégé 仓库的替代维护方案，并验证编辑器/应用级导入—编辑—保存—导出往返、插件扩展点、Desktop/Web 文件交换、Web 服务端认证授权与项目隔离；解析完整依赖树及许可证。保存完整命令、环境、可得退出状态、日志和测试数据哈希。（PROPOSED；未完成部分为 UNVERIFIED/BLOCKED）
 
 在上述结果、产品职责和许可证策略确认之前，不选择“整体 fork”或“重写”，也不宣称已有互操作能力。

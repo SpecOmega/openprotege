@@ -12,7 +12,11 @@
 
 本轮检查前当前分支为 `main`，HEAD `725e9d21bd36d973211e65e67d248ef4a562f10c`，相对 `origin/main` ahead 1，工作区干净，历史有四个提交。项目已有中英文 README 和已提交的工程/需求草案；应用源码、应用依赖清单、产品构建/测试入口、CI 和 LICENSE 仍未发现。（VERIFIED：`git status --short --branch`、`git rev-parse HEAD`、`git rev-list --count HEAD`、`git ls-files`）
 
-两个指定上游此后已完整克隆并固定 checkout，Desktop 固定提交在 JDK 21 下 `clean verify` 成功；WebProtégé 的首次构建因缺少 MongoDB 失败、JDK 25 构建遇到 AutoValue 生成类编译失败，JDK 21 构建重试结果待确认。详见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md)。这些结果不改变 OpenProtégé 尚无产品实现的结论。
+两个指定上游此后已完整克隆并固定 checkout，Desktop 固定提交在 JDK 21 下 `clean verify` 成功；WebProtégé 的首次构建因缺少 MongoDB 失败、JDK 25 构建遇到 AutoValue 生成类编译失败；该次复核时 JDK 21 重试尚无最终状态，后续镜像重试结果见下节及 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md)。这些上游结果不改变 OpenProtégé 尚无产品实现的结论。
+
+### Maven 镜像与构建结果补充（2026-10-09）
+
+在固定 WebProtégé commit `1e84fa02aef68be45f18c08dbeae94bec9b04a41` 上，使用 Aliyun Central mirror、JDK 21、MongoDB 4.1 及已有 Maven 本地缓存，`clean package` 的 9 模块 reactor 成功，Maven 退出码 0，7 个模块聚合测试合计 4124 tests、0 failures/errors/skips。清华镜像对本次探测的一个具体 Maven artifact URL 返回 HTTP 404；这不代表清华所有仓库路径均不可用。Aliyun 构建未验证空缓存，也未证明其覆盖 POM 中的 Protege 专用仓库。详见 E-27、E-28。OpenProtégé 本身仍无应用构建入口或上游集成。
 
 | 结论 | 状态 | 证据 |
 |---|---|---|
