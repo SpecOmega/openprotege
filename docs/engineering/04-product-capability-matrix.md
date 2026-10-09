@@ -2,7 +2,7 @@
 
 审计日期：2026-10-09
 
-实现基线：OpenProtégé 当前 HEAD `e595add49b43a83bb68c7c618ee4f0416b2b2e6b`。初始源码审计提交为 `d9caafee6858a958ea7a2944d574407a79f88309`。
+实现基线：OpenProtégé 当前 HEAD `725e9d21bd36d973211e65e67d248ef4a562f10c`。初始源码审计提交为 `d9caafee6858a958ea7a2944d574407a79f88309`。
 
 语言：中文主文档；英文翻译状态为 Pending，见 [索引](./README.md)。
 

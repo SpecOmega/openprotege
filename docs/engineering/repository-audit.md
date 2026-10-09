@@ -2,7 +2,7 @@
 
 审计日期：2026-10-09
 
-审计范围：OpenProtégé 当前本地检出（本报告最初记录的代码基线为 `d9caafee6858a958ea7a2944d574407a79f88309`，当前复核为 `e595add49b43a83bb68c7c618ee4f0416b2b2e6b`），以及两个指定上游的固定提交。
+审计范围：OpenProtégé 当前本地检出（本报告最初记录的代码基线为 `d9caafee6858a958ea7a2944d574407a79f88309`，本轮检查前复核为 `725e9d21bd36d973211e65e67d248ef4a562f10c`），以及两个指定上游的固定提交。
 
 状态约定：`VERIFIED` 表示执行了可复现检查并取得证据；`SOURCE-OBSERVED` 表示从文件或配置中观察到但未运行验证；`PROPOSED` 表示建议；`UNVERIFIED` 表示尚未验证；`BLOCKED` 表示受环境、权限或网络限制。
 
@@ -10,14 +10,14 @@
 
 ### 当前复核补充（2026-10-09）
 
-当前分支 `main`、HEAD `e595add49b43a83bb68c7c618ee4f0416b2b2e6b`，与 `origin/main` 对齐且工作区干净；Git 历史有三个提交。项目已有中英文 README 和已提交的工程/需求草案。应用源码、依赖清单、构建/测试入口、CI 和 LICENSE 仍未发现。（VERIFIED：`git status --short --branch`、`git rev-parse HEAD`、`git --no-pager log -3 --oneline --decorate`、`git ls-files`）
+本轮检查前当前分支为 `main`，HEAD `725e9d21bd36d973211e65e67d248ef4a562f10c`，相对 `origin/main` ahead 1，工作区干净，历史有四个提交。项目已有中英文 README 和已提交的工程/需求草案；应用源码、应用依赖清单、产品构建/测试入口、CI 和 LICENSE 仍未发现。（VERIFIED：`git status --short --branch`、`git rev-parse HEAD`、`git rev-list --count HEAD`、`git ls-files`）
 
 两个指定上游此后已完整克隆并固定 checkout，Desktop 固定提交在 JDK 21 下 `clean verify` 成功；WebProtégé 的首次构建因缺少 MongoDB 失败、JDK 25 构建遇到 AutoValue 生成类编译失败，JDK 21 构建重试结果待确认。详见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md)。这些结果不改变 OpenProtégé 尚无产品实现的结论。
 
 | 结论 | 状态 | 证据 |
 |---|---|---|
 | 工作分支为 `main`，与 `origin/main` 对齐；工作树干净。 | VERIFIED | E-01、E-02 |
-| 当前提交是根提交 `d9caafee6858a958ea7a2944d574407a79f88309`，标题为 `Initial commit`，只包含 `README.md`。 | VERIFIED | E-01、E-03 |
+| 初始代码基线是根提交 `d9caafee6858a958ea7a2944d574407a79f88309`，标题为 `Initial commit`，只包含 `README.md`。 | VERIFIED（历史基线） | E-01、E-03 |
 | README 仅声明项目为“带 AI 辅助的开源本体建模平台”；仓库中没有实现这些功能的代码。 | SOURCE-OBSERVED | E-03、E-04 |
 | 当前仓库没有桌面/Web 应用、后端、数据库、API、插件、构建脚本、测试、CI、部署配置或项目许可证文件。 | VERIFIED | 对 Git 跟踪树与工作目录的盘点，E-03、E-04 |
 | 不能据此声称 OpenProtégé 已基于或集成 Protégé Desktop/WebProtégé；现有仓库没有可观察到的集成证据。 | SOURCE-OBSERVED | E-03、E-04；上游比较见 [upstream-audit.md](./upstream-audit.md) |
@@ -28,29 +28,28 @@
 
 | 项目 | 结果 | 状态 |
 |---|---|---|
-| 分支 | `main` | VERIFIED |
-| `git status --short --branch` | `## main...origin/main`，无工作区改动 | VERIFIED |
-| `git status --porcelain=v1` | 空输出 | VERIFIED |
+| 当前分支和状态（本轮开始前） | `main`；`## main...origin/main [ahead 1]`；工作区干净 | VERIFIED |
+| 初始审计时状态 | `## main...origin/main`，无工作区改动 | VERIFIED（历史基线） |
 | 远程 | `origin` fetch/push 均为 `https://github.com/SpecOmega/openprotege` | VERIFIED |
-| HEAD | `d9caafee6858a958ea7a2944d574407a79f88309` | VERIFIED |
+| 当前 HEAD（本轮开始前） | `725e9d21bd36d973211e65e67d248ef4a562f10c` | VERIFIED |
 | 提交时间与标题 | `2026-10-09T13:04:01+08:00`；`Initial commit` | VERIFIED |
-| 历史 | 仅一个提交；根提交无父提交 | VERIFIED |
-| HEAD 跟踪文件 | `README.md` | VERIFIED |
+| 当前历史 | 四个提交；初始基线是无父提交的根提交 | VERIFIED |
+| 初始 HEAD 跟踪文件 | `README.md` | VERIFIED（历史基线） |
 
 ## 文件、模块与技术栈
 
 ### 仓库内容
 
-检查工作目录时，除 `.git/` 外只有 `README.md`；Git 跟踪树也仅列出 `README.md`。当前没有既存的工程文档目录；本次新增的审计文档是首批文档。
+初始审计时，除 `.git/` 外只有 `README.md`；Git 跟踪树也仅列出 `README.md`。当前检出另有已提交的中英文 README、工程/需求文档，以及本轮新加的 PoC harness 与独立依赖 POM；这些文档不是产品运行模块。
 
-README 内容为标题 `openprotege` 与一句项目描述。它没有给出安装、运行、构建、测试或部署步骤。
+最初根提交中的 README 内容为标题 `openprotege` 与一句项目描述；后续已拆分中英文 README。README 与审计文档都不能证明产品功能可运行。
 
 ### 技术栈及运行组件
 
 | 类别 | 本仓库观察结果 | 状态 |
 |---|---|---|
-| 编程语言、框架、运行时 | 未发现源码或项目清单，无法识别 | SOURCE-OBSERVED |
-| 构建系统与依赖管理 | 未发现构建/依赖配置 | SOURCE-OBSERVED |
+| 产品语言、框架、运行时 | 未发现应用源码或项目清单，无法识别；文档 PoC harness 使用 Java | SOURCE-OBSERVED |
+| 产品构建系统与依赖管理 | 未发现应用构建/依赖配置；独立 PoC 使用 OWLAPI 4.5.29 Maven POM | SOURCE-OBSERVED |
 | 桌面客户端、Web 前端、后端 | 未发现 | SOURCE-OBSERVED |
 | 数据库、API、插件体系 | 未发现 | SOURCE-OBSERVED |
 | 运行方式 | README 未提供；无可运行应用 | SOURCE-OBSERVED |
@@ -60,8 +59,8 @@ README 内容为标题 `openprotege` 与一句项目描述。它没有给出安�
 
 ## 已实现、占位与缺失
 
-- 仓库当前唯一可观察内容是项目名称和一句定位说明。（SOURCE-OBSERVED）
-- 没有可运行功能、部分实现模块、占位实现或 TODO/FIXME 源码可供确认。（VERIFIED：对当前工作目录进行文件和关键词盘点）
+- 初始根提交唯一内容是项目名称和一句定位说明；当前检出另有工程、需求与 PoC 文档。（SOURCE-OBSERVED）
+- 没有可运行产品功能、部分实现模块、占位实现或 TODO/FIXME 产品源码可供确认；仅有用于 OWLAPI 单样例格式验证的独立 PoC harness。（VERIFIED：对当前工作目录进行文件和关键词盘点）
 - 因无实现代码，不能对用户、项目、成员、权限、版本、审计、本体格式保真、身份认证或错误处理作功能性判断；均为 `UNVERIFIED`，而不是“已经实现”或“已验证缺陷”。
 - “AI assistance”目前只是 README 的文字声明，不构成 AI 功能的实现证据。（SOURCE-OBSERVED）
 
@@ -69,7 +68,7 @@ README 内容为标题 `openprotege` 与一句项目描述。它没有给出安�
 
 | 检查项 | 结果 | 状态 |
 |---|---|---|
-| 测试文件或测试配置 | 未发现 | VERIFIED |
+| 产品测试文件或测试配置 | 未发现；仅有独立文档 PoC harness | VERIFIED |
 | CI 工作流 | 未发现 `.github/workflows/` 或其他 CI 配置 | VERIFIED |
 | 构建/启动脚本 | 未发现 | VERIFIED |
 | 部署配置 | 未发现 | VERIFIED |
@@ -87,7 +86,7 @@ README 内容为标题 `openprotege` 与一句项目描述。它没有给出安�
 
 ## Protégé 上游关系
 
-本次固定并静态检查的上游提交及其可观察事实见 [upstream-audit.md](./upstream-audit.md)。当前 OpenProtégé 只有一个新建根提交和一份泛化 README；未发现上游 Git 历史、代码、Maven 坐标、依赖声明、子模块、版权声明或来源说明。因此仅能得出“当前检出没有上游集成证据”，不能推断没有任何项目外的关系，也不能将上游功能归入 OpenProtégé。（SOURCE-OBSERVED）
+本次固定并静态检查的上游提交及其可观察事实见 [upstream-audit.md](./upstream-audit.md)。当前 OpenProtégé 有中英文 README 和工程/需求/PoC 文档，但没有应用源码；未发现上游代码、应用 Maven 坐标、依赖声明、子模块、版权声明或来源说明。因此仅能得出“当前检出没有上游应用集成证据”，不能推断没有任何项目外的关系，也不能将上游功能归入 OpenProtégé。（SOURCE-OBSERVED）
 
 ## 执行记录
 

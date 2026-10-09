@@ -2,7 +2,7 @@
 
 审计日期：2026-10-09
 
-对象：OpenProtégé 当前检出 HEAD `e595add49b43a83bb68c7c618ee4f0416b2b2e6b`。初始无源码基线提交为 `d9caafee6858a958ea7a2944d574407a79f88309`。
+对象：OpenProtégé 当前检出 HEAD `725e9d21bd36d973211e65e67d248ef4a562f10c`。初始无源码基线提交为 `d9caafee6858a958ea7a2944d574407a79f88309`。
 
 语言：中文主文档；英文翻译状态为 Pending，见 [索引](./README.md)。
 
@@ -32,8 +32,8 @@ README 中的产品定位不能证明任何运行功能。具体模块盘点见 
 
 ## 技术选择结论
 
-- 当前代码没有可识别的语言、框架、运行时、API、数据库或本体工具链。（SOURCE-OBSERVED）
-- 不能仅因指定上游采用 Java/Maven，就将其推断为 OpenProtégé 栈。（VERIFIED：当前 HEAD 不含上游 Maven 文件或依赖）
+- 当前没有产品源码或可运行组件；因此产品语言、框架、运行时、API、数据库或本体工具链不可识别。独立文档 PoC 使用 Java 与 OWLAPI 4.5.29，不构成产品技术栈。（SOURCE-OBSERVED）
+- 不能仅因指定上游采用 Java/Maven，就将其推断为 OpenProtégé 产品栈；当前 Maven POM 只服务于隔离的 PoC harness。（VERIFIED：当前产品目录与 [PoC POM](./poc/owlapi-poc-pom.xml)）
 - 暂不提出具体目标部署拓扑。先由产品/工程决策确认桌面与 Web 的边界、数据托管模型、离线需求与信任边界。（PROPOSED）
 - 安全设计应将服务端授权、隔离及不可信本体文件视为未来需要验证的设计约束；这不是现状检查发现的漏洞。（PROPOSED）
 
