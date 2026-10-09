@@ -8,9 +8,9 @@
 
 语言：中文主文档；英文翻译状态为 Pending，见 [索引](./README.md)。
 
-## 执行摘要
+## 执行摘要（Stage 0 历史状态）
 
-OpenProtégé 当前已有中英文 README 与工程/需求草案，但仍没有应用源码、应用依赖清单、构建/测试入口、CI 或项目 LICENSE。负责人已确认产品基线决策；需求草案记录这些决策，不构成实现证据。
+Stage 0 报告生成时，OpenProtégé 已有中英文 README 与工程/需求草案，但仍没有应用源码、应用依赖清单、构建/测试入口、CI 或项目 LICENSE。负责人已确认产品基线决策；需求草案记录这些决策，不构成实现证据。后续新增 Web foundation 的状态另见本报告末尾。
 
 本轮按固定 SHA 完整克隆并验证了指定的 Protégé Desktop 与 WebProtégé 上游。Desktop 固定提交在 JDK 21 下 Maven `clean verify` 成功（531 tests、0 failures、0 errors、3 skipped）。另在 Desktop 固定提交的 `pizza.owl` 样例上使用 OWLAPI 4.5.29 验证 RDF/XML→Turtle→RDF/XML 文件往返，930 个公理及 ontology ID、注释和 imports 精确保持。WebProtégé 首次构建因缺少 MongoDB 测试依赖失败；提供数据库后，JDK 25 构建因 AutoValue 类型未生成而失败；JDK 21/MongoDB 4.1 初次重试的 5 个模块有 4091 tests、0 failures、0 errors、0 skipped，但 package 依赖解析遇到 GitHub Maven 仓库 HTTP 504，未取得最终状态。后续 Aliyun Central mirror 重试在 JDK 21/MongoDB 4.1 下完成 9/9 模块 `clean package`，Maven 退出码 0，7 个模块测试合计 4124 tests、0 failures、0 errors、0 skipped。该次构建使用已有本地 Maven 缓存，不证明空缓存依赖获取，也不等同于 Web 服务运行、编辑器或 OpenProtégé 功能验证。
 
@@ -20,7 +20,7 @@ OpenProtégé 当前已有中英文 README 与工程/需求草案，但仍没有
 
 | # | 条件 | 判定 | 证据 / 未完成事项 |
 |---:|---|---|---|
-| 1 | 仓库现状和 Git 基线已记录 | 满足（当前复核） | [00-repository-baseline.md](./00-repository-baseline.md)：当前分支、HEAD、干净状态、提交历史及无应用源码事实已记录；GitHub Releases 仍因未认证未确认。 |
+| 1 | 仓库现状和 Git 基线已记录 | 满足（Stage 0 检查时） | [00-repository-baseline.md](./00-repository-baseline.md)：Stage 0 时的分支、HEAD、干净状态及提交历史已记录；GitHub Releases 仍因未认证未确认。该结论不是当前应用源码状态。 |
 | 2 | 技术栈与主要模块基于真实文件识别 | 满足（OpenProtégé 现状） | 已验证当前没有 OpenProtégé 应用技术栈/运行模块；上游模块结构单独记录，不混同项目模块。见 [01-current-architecture.md](./01-current-architecture.md)、[02-module-inventory.md](./02-module-inventory.md)。 |
 | 3 | 构建和测试执行状态如实记录 | 满足（项目自身仍受阻） | [03-build-and-test-baseline.md](./03-build-and-test-baseline.md)：OpenProtégé 无构建入口（BLOCKED）；Desktop 固定提交通过；WebProtégé 固定提交 Aliyun Central mirror 重试完整 package 通过（9 模块，4124 tests、0 failures/errors/skips）；其他失败/中断重试单独记录。 |
 | 4 | 产品能力矩阵已建立 | 满足（范围判断） | [04-product-capability-matrix.md](./04-product-capability-matrix.md)：目标能力均按 OpenProtégé 自身实现证据判定，上游能力没有混入。 |
@@ -62,7 +62,7 @@ OpenProtégé 当前已有中英文 README 与工程/需求草案，但仍没有
 4. 未解析上游完整传递依赖许可证/漏洞；OpenProtégé 尚未选定最终许可证。Apache-2.0 是负责人要求评估的候选。
 5. GitHub Release/远端 fork 元数据仍待授权只读查询；WebProtégé README 指向替代的细分仓库，候选替代版本尚未评估。
 6. 英文工程/需求文档翻译 Pending；本轮 Markdown 空白检查与 10 份工程文档的相对链接检查已通过，完整双语文档一致性仍未完成。
-7. OpenProtégé 当前没有应用源码，项目自身构建、测试、运行、安全、性能及部署验证仍 BLOCKED。
+7. Stage 0 结束时 OpenProtégé 没有应用源码，项目自身构建、测试、运行、安全、性能及部署验证仍 BLOCKED；之后的 Web foundation 增量见本文件末尾。
 
 ## 下一项明确工程任务
 
@@ -89,3 +89,13 @@ OpenProtégé 当前已有中英文 README 与工程/需求草案，但仍没有
 5. OpenProtégé 功能状态仍仅以本仓库实现和测试证据为准。
 
 未经明确授权，不推送、发布或生产部署。
+
+## Stage 0 后续：Web foundation 模块增量记录（2026-10-09）
+
+Stage 0 的“部分完成”结论保留为该阶段的历史判断，不因后续实现而追溯改写。本轮按负责人批准的技术栈新增 Web 后端与 PostgreSQL/Flyway 基础：Java 21 / Spring Boot 3.5.6、PostgreSQL 17、Testcontainers。集成测试 3/3 通过，覆盖数据库可用/不可用 readiness、SQL 查询与测试迁移；standalone host-network 服务连接 PostgreSQL 后 readiness HTTP 200。
+
+Compose 配置校验与镜像构建通过，但应用通过 Docker bridge 连接数据库在当前执行环境超时。加入服务 healthcheck 后 `docker compose up --build --wait` 以退出码 1 正确暴露启动失败；未把第一次未配置 healthcheck 时的退出码 0 误报为产品运行成功。该 bridge 互联尚需在正常 Docker 网络环境重验。工程代码/需求追踪状态、实测命令和错误边界见 [01-current-architecture.md](./01-current-architecture.md)、[03-build-and-test-baseline.md](./03-build-and-test-baseline.md)、[evidence-ledger.md](./evidence-ledger.md) E-31～E-35。用户/团队、项目、权限、本体与 Web UI 均仍未实现。
+
+## Stage 0 后续：身份、团队与项目模块增量（2026-10-09）
+
+Stage 0 的历史退出判断不追溯修改。其后已新增本地会话认证、管理员邀请与首账号 bootstrap、团队/项目元数据和首版服务端角色授权 API；新增 Flyway schema、数据模型/ADR、用例/验收/需求追踪更新。Java 21 Testcontainers suite 5/5 tests 通过；只覆盖文档 E-36 和 ADR-0002 中列出的路径，不代表完整 UI、权限矩阵、生产安全或 Compose 部署验收。尚待完成：完整 Owner/Admin/Editor 权限矩阵、登录限速/账户恢复、多副本 session、Web UI、本体工作流、正常 Docker bridge 环境复验。

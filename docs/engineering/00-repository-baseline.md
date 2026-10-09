@@ -16,12 +16,12 @@
 
 本轮开始前，当前分支为 `main`，HEAD 为 `725e9d21bd36d973211e65e67d248ef4a562f10c`，工作区干净；最初状态显示相对 `origin/main` ahead 1，之后复核时本地 `origin/main` tracking ref 已指向同一 SHA。历史含四个提交；最新提交为审计文档更新。当前已有中文 [README](../../README.md)、英文 [README.en.md](../../README.en.md) 和已提交的文档基线；仍未发现 OpenProtégé 应用源码、应用依赖清单、产品构建/测试入口或项目 LICENSE。（VERIFIED：`git status --short --branch`、`git rev-parse HEAD`、`git --no-pager log -3 --oneline --decorate`、`git rev-list --count HEAD`、`git ls-files`）
 
-下表原始检查结果保留为初始审计时的历史基线，不应与当前 HEAD 混用。当前无应用代码的结论仍成立，但“只跟踪 README”“工作区有未跟踪 docs”等描述仅针对初始提交/初始审计时点。
+下表原始检查结果保留为初始审计时的历史基线，不应与当前 HEAD 混用。Stage 0 时无应用代码的结论不再描述当前工作树；“只跟踪 README”“工作区有未跟踪 docs”等描述仅针对初始提交/初始审计时点。
 
 | ID | 发现 | 状态 | 影响 / 风险 | 后续任务 |
 |---|---|---|---|---|
 | RB-01 | 初始代码基线位于 `main`，HEAD 是唯一根提交 `d9caafee…`；当时与 `origin/main` 对齐。 | VERIFIED（历史基线） | 高：初始代码审计对象只有项目根提交。 | N-01 |
-| RB-02 | 初始 HEAD 只跟踪 `README.md`；当前仍未发现应用代码和模块。 | VERIFIED | 高：没有可构建或测试的 OpenProtégé 产品。 | N-02 |
+| RB-02 | 初始 HEAD 只跟踪 `README.md`；本轮后续工作树已新增 Web foundation 服务与测试代码。 | VERIFIED（分别按历史快照/当前工作树） | 高：尚无完整可交付产品；基础服务不能代表 Web 或桌面产品已完成。 | N-02 |
 | RB-03 | 初始审计前工作树干净；后续文档已提交；本轮开始前 HEAD 干净且相对 origin ahead 1。 | VERIFIED | 低：当前文档及本轮 PoC 文件均需保留，不做清理。 | N-02 |
 | RB-04 | 本地及远端 Git tags 均未返回标签；GitHub CLI 发布列表因未登录无法查询。 | VERIFIED / BLOCKED | 中：不能据此断言不存在 GitHub Release；发布信息不完整。 | N-03 |
 | RB-05 | 仓库中未发现 LICENSE、贡献指南、行为准则、安全政策、CI、构建/测试配置或部署配置。 | VERIFIED（当前检出范围） | 高：发布合规、协作与质量门禁尚无项目内基线。 | N-04 |
@@ -51,7 +51,7 @@
 
 GitHub Release 查询：`gh release list --repo SpecOmega/openprotege --limit 10`，退出码 4；CLI 提示需要 `gh auth login` 或 `GH_TOKEN`。（BLOCKED）未向 CLI 提供令牌，也没有尝试写入远端。可在获准的只读 GitHub API/CLI 认证环境复核发布信息。
 
-初始审计时，顶层除 Git 元数据外为 `README.md` 与未跟踪的 `docs/`；当前复核时文档已提交，且无应用实现。初始基线跟踪树与后续文档及本轮 PoC 文件应区分。
+初始审计时，顶层除 Git 元数据外为 `README.md` 与未跟踪的 `docs/`；文档基线复核时无应用实现。此后新增的 Web foundation 代码与当前工作树状态见本文件末尾的增量复核。
 
 ## 入口、政策与工程配置清单
 
@@ -62,10 +62,10 @@ GitHub Release 查询：`gh release list --repo SpecOmega/openprotege --limit 10
 | `CONTRIBUTING*` / 行为准则 | 未发现。 |
 | `SECURITY*` | 未发现。 |
 | `.github/workflows/` 或其他 CI 配置 | 未发现。 |
-| 应用 Maven/Gradle/npm/Python/Rust/Go 清单、锁文件 | 未发现；存在仅供独立 PoC 使用的 [owlapi-poc-pom.xml](./poc/owlapi-poc-pom.xml)。 |
-| 应用测试框架配置、测试源码 | 未发现；仅有 [OwlFormatRoundTrip.java](./poc/OwlFormatRoundTrip.java) 这项非产品 PoC harness。 |
+| 应用 Maven/Gradle/npm/Python/Rust/Go 清单、锁文件 | 当前 `server/pom.xml` 为 Java 服务的 Maven 清单；另有仅供独立 PoC 使用的 [owlapi-poc-pom.xml](./poc/owlapi-poc-pom.xml)。无锁文件。 |
+| 应用测试框架配置、测试源码 | 当前 `server/src/test/` 包含 PostgreSQL Testcontainers 集成测试；另有非产品 [OwlFormatRoundTrip.java](./poc/OwlFormatRoundTrip.java) PoC harness。 |
 | `.gitmodules`、Git LFS 跟踪文件 | 未发现。 |
-| Docker、部署清单、发布脚本 | 未发现。 |
+| Docker、部署清单、发布脚本 | 当前有 `server/Dockerfile`、根 `compose.yaml`；无发布脚本。Compose bridge 服务互联在当前执行环境仍待验证。 |
 
 “未发现”仅适用于当前检出与本次工作区盘点，不排除其他未检出分支、远端 Release 附件或外部系统。
 
@@ -75,7 +75,7 @@ GitHub Release 查询：`gh release list --repo SpecOmega/openprotege --limit 10
 
 ## 可复现性与边界
 
-本基线以固定 HEAD 和上述只读命令为界。Git 查询、目录枚举、LFS 查询均成功；远端标签查询退出码 0。Release 查询受 GitHub CLI 未认证阻塞。没有执行构建、测试、部署或写入操作。
+本节仓库与 Git 基线记录的是 Stage 0 固定 HEAD；后续新增 Web foundation 的实际状态见下方增量复核及 [构建/测试基线](./03-build-and-test-baseline.md)。初始 Git 查询、目录枚举、LFS 查询均成功；远端标签查询退出码 0。Release 查询受 GitHub CLI 未认证阻塞。
 
 ## 后续行动
 
@@ -83,3 +83,7 @@ GitHub Release 查询：`gh release list --repo SpecOmega/openprotege --limit 10
 - N-02：经产品范围确认后，选择和引入最小可验证代码；保留现存审计文档。
 - N-03：在有授权的只读 GitHub 会话中查询 Releases/附件并记录访问时间与结果。
 - N-04：在任何代码或依赖引入前，确定许可证及贡献、安全、CI 政策。
+
+## 后续实现增量复核
+
+本轮在 Stage 0 后新增 Web 服务与数据库基础文件，初始仓库检查不可再作为当前实现描述：`server/` 使用 Java 21/Spring Boot 3，依赖清单、入口、Actuator、JDBC/Flyway、Testcontainers 测试与 Dockerfile 已存在；根目录新增 PostgreSQL Compose 编排。后续首个身份/团队/项目模块及其集成测试现已实现；完整结果见 E-36。Compose bridge 下应用无法连接数据库，加入 HTTP healthcheck 后 `docker compose up --wait` 以非零结果报告失败；本体处理仍未实现。具体命令、状态与证据等级见 E-31～E-36。

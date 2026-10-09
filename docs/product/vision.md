@@ -9,8 +9,8 @@
 ## 文档状态与证据边界
 
 - **负责人已确认的产品决策 — VERIFIED（决策来源）**：负责人于 2026-10-09 在本任务中确认个人与团队用户、OWL 2 核心与常用格式优先级、桌面/Web 分工、自托管优先、Apache-2.0 评估、文件交换先行以及 AI/Agent 首期边界。这里的 VERIFIED 只表示决策在本次对话中被明确确认，不表示源码、可行性、兼容性或实现已经验证。
-- **当前仓库事实 — SOURCE-OBSERVED**：审计的 HEAD `d9caafee6858a958ea7a2944d574407a79f88309` 只包含 `README.md`；未发现应用实现或技术清单。见 [仓库基线](../engineering/00-repository-baseline.md)。
-- **技术可行性 — UNVERIFIED**：OWL 2 工具链、RDF/XML/Turtle 往返行为、桌面/Web 文件交换协议、授权模型及部署方案尚未通过上游 PoC。
+- **初始仓库事实 — VERIFIED**：最初审计的 HEAD `d9caafee6858a958ea7a2944d574407a79f88309` 只包含 `README.md`。当前工作树已有 Java 21/Spring Boot/PostgreSQL 的 Web foundation；集成 readiness 测试通过，但 Compose bridge 部署受环境阻塞。见 [仓库基线](../engineering/00-repository-baseline.md) 与 [当前架构](../engineering/01-current-architecture.md)。
+- **技术可行性 — 部分 VERIFIED / UNVERIFIED**：数据库连接与 readiness 行为经 Testcontainers/standalone 验证；OWL 2 应用工具链、RDF/XML/Turtle 产品往返、桌面/Web 文件交换协议、身份授权及正常 Compose bridge 部署尚未完成验证。
 - **方案建议 — PROPOSED**：先用文件交换连接本地桌面编辑与 Web 项目管理；后续根据冲突、审计和体验验证再评估实时同步。
 
 本愿景是需求讨论和验收基线草案，不描述已交付产品。

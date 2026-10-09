@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: openprotege-server
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/openprotege}
+    username: ${DB_USER:openprotege}
+    password: ${DB_PASSWORD}
+  flyway:
+    clean-disabled: true
+    validate-on-migrate: true
+openprotege:
+  bootstrap:
+    admin-email: ${ADMIN_BOOTSTRAP_EMAIL:}
+    admin-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      group:
+        readiness:
+          include: readinessState,db
+      probes:
+        enabled: true
+        add-additional-paths: true

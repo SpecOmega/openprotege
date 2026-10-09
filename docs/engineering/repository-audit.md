@@ -6,6 +6,10 @@
 
 状态约定：`VERIFIED` 表示执行了可复现检查并取得证据；`SOURCE-OBSERVED` 表示从文件或配置中观察到但未运行验证；`PROPOSED` 表示建议；`UNVERIFIED` 表示尚未验证；`BLOCKED` 表示受环境、权限或网络限制。
 
+## 后续 Web 模块更新（2026-10-09）
+
+本报告前述“当前复核”记录的是本轮身份/项目模块实现前的检出状态，不应解释为当前代码事实。其后 Web foundation 与身份/团队/项目 API 已加入工作树：本地邀请/会话、管理员引导、团队/项目成员关系与初步对象授权；Java 21 PostgreSQL suite 5/5 tests 通过，具体范围和未验证边界见 E-36、[当前架构](./01-current-architecture.md)、[模块清单](./02-module-inventory.md)及[安全审计](./05-security-review.md)。React UI、本体功能和 Compose bridge 部署仍未完成/验证。
+
 ## 摘要
 
 ### 当前复核补充（2026-10-09）
@@ -44,11 +48,11 @@
 
 ### 仓库内容
 
-初始审计时，除 `.git/` 外只有 `README.md`；Git 跟踪树也仅列出 `README.md`。当前检出另有已提交的中英文 README、工程/需求文档，以及本轮新加的 PoC harness 与独立依赖 POM；这些文档不是产品运行模块。
+初始审计时，除 `.git/` 外只有 `README.md`；Git 跟踪树也仅列出 `README.md`。Stage 0 文档审计时另有中英文 README、工程/需求文档，以及 PoC harness 与独立依赖 POM；这些文档不是产品运行模块。Web foundation 是之后新增的模块，见本文件后续增量。
 
 最初根提交中的 README 内容为标题 `openprotege` 与一句项目描述；后续已拆分中英文 README。README 与审计文档都不能证明产品功能可运行。
 
-### 技术栈及运行组件
+### Stage 0 技术栈及运行组件（历史快照）
 
 | 类别 | 本仓库观察结果 | 状态 |
 |---|---|---|
@@ -59,12 +63,12 @@
 | 运行方式 | README 未提供；无可运行应用 | SOURCE-OBSERVED |
 | AI、语义检索、协同编辑 | README 中只有产品描述，没有实现 | SOURCE-OBSERVED |
 
-本环境中探测到 Git `2.55.0`、OpenJDK `25.0.4.1`、Maven `3.9.16`、Node.js `v24.21.0`、npm `11.19.0`、Python `3.14.2`。这是审计环境工具版本，不是项目要求或受支持的运行时版本。（VERIFIED）
+本环境中探测到 Git `2.55.0`、OpenJDK `25.0.4.1`、Maven `3.9.16`、Node.js `v24.21.0`、npm `11.19.0`、Python `3.14.2`。这是 Stage 0 审计环境工具版本，不是项目要求或受支持的运行时版本。（VERIFIED）
 
 ## 已实现、占位与缺失
 
 - 初始根提交唯一内容是项目名称和一句定位说明；当前检出另有工程、需求与 PoC 文档。（SOURCE-OBSERVED）
-- 没有可运行产品功能、部分实现模块、占位实现或 TODO/FIXME 产品源码可供确认；仅有用于 OWLAPI 单样例格式验证的独立 PoC harness。（VERIFIED：对当前工作目录进行文件和关键词盘点）
+- Stage 0 快照没有可运行产品功能、部分实现模块、占位实现或 TODO/FIXME 产品源码可供确认；仅有用于 OWLAPI 单样例格式验证的独立 PoC harness。（VERIFIED：当时对工作目录进行文件和关键词盘点）
 - 因无实现代码，不能对用户、项目、成员、权限、版本、审计、本体格式保真、身份认证或错误处理作功能性判断；均为 `UNVERIFIED`，而不是“已经实现”或“已验证缺陷”。
 - “AI assistance”目前只是 README 的文字声明，不构成 AI 功能的实现证据。（SOURCE-OBSERVED）
 
@@ -81,6 +85,10 @@
 
 不将环境中已安装的 Java/Maven 等工具解释为项目栈，也未用这些工具虚构一次项目构建或测试结果。
 
+## Web foundation 增量（Stage 0 之后）
+
+后续在用户确认 Java 21、Spring Boot 3、PostgreSQL/Flyway 技术基线后，新增 `server/` Maven 服务、Testcontainers 集成测试、Dockerfile 和 PostgreSQL Compose 配置；随后又实现身份/团队/项目首期 API。foundation 测试及业务 API 测试见 E-31、E-36。带应用 healthcheck 的 Compose 启动在当前 Docker bridge 网络环境以退出码 1 失败；本体处理仍未实现，具体见 [构建和测试基线](./03-build-and-test-baseline.md)。
+
 ## 许可证与开源发布风险
 
 - 当前 Git 跟踪树没有 `LICENSE`、版权声明或第三方代码来源清单。（VERIFIED）
@@ -90,7 +98,7 @@
 
 ## Protégé 上游关系
 
-本次固定并静态检查的上游提交及其可观察事实见 [upstream-audit.md](./upstream-audit.md)。当前 OpenProtégé 有中英文 README 和工程/需求/PoC 文档，但没有应用源码；未发现上游代码、应用 Maven 坐标、依赖声明、子模块、版权声明或来源说明。因此仅能得出“当前检出没有上游应用集成证据”，不能推断没有任何项目外的关系，也不能将上游功能归入 OpenProtégé。（SOURCE-OBSERVED）
+本次固定并静态检查的上游提交及其可观察事实见 [upstream-audit.md](./upstream-audit.md)。Stage 0 审计快照只有中英文 README 和工程/需求/PoC 文档；之后新增 Web foundation Maven 模块，不含上游代码、上游 Maven 坐标或子模块。当前仍没有上游集成证据，因此不能推断没有任何项目外关系，也不能将上游功能归入 OpenProtégé。（SOURCE-OBSERVED）
 
 ## 执行记录
 

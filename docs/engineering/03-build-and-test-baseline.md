@@ -2,13 +2,13 @@
 
 审计日期：2026-10-09
 
-OpenProtégé 当前 HEAD（本轮检查前）：`725e9d21bd36d973211e65e67d248ef4a562f10c`。
+本文件保留 Stage 0 时无应用代码的历史检查结果；当前首个应用模块的增量检查见下节。Stage 0 快照 HEAD：`725e9d21bd36d973211e65e67d248ef4a562f10c`。
 
 语言：中文主文档；英文翻译状态为 Pending，见 [索引](./README.md)。
 
-## OpenProtégé 仓库检查
+## Stage 0 仓库检查（历史基线）
 
-当前仓库没有应用源码、依赖清单、构建/测试脚本或 CI 配置。以下项目级检查未执行；这是缺少可执行项目入口造成的阻塞，不是构建失败。（VERIFIED：当前 Git 跟踪树与工作区盘点）
+Stage 0 快照的仓库没有应用源码、依赖清单、构建/测试脚本或 CI 配置。下表只记录该历史快照；它不是当前工作树结论。（VERIFIED：固定快照的 Git 跟踪树与工作区盘点）
 
 | 检查 | 是否执行 | 结果 | 状态 |
 |---|---:|---|---|
@@ -18,6 +18,31 @@ OpenProtégé 当前 HEAD（本轮检查前）：`725e9d21bd36d973211e65e67d248e
 | 类型、格式、静态分析 | 否 | 无应用源码或工具配置 | BLOCKED |
 | 安全依赖扫描 | 否 | 无依赖清单 | BLOCKED |
 | 部署、冒烟、备份恢复 | 否 | 无产品或部署配置 | BLOCKED |
+
+## Web foundation 模块（2026-10-09 增量验证）
+
+当前工作树新增 `server/` Maven/Spring Boot 模块与 `compose.yaml`，因此上面的“无应用入口”只描述 Stage 0 快照，不描述当前工作树。
+
+| 检查 | 命令 | 结果 |
+|---|---|---|
+| Docker/Compose 配置 | `DB_USER=openprotege DB_PASSWORD='[redacted local test value]' docker compose config --quiet` | 退出码 0。 |
+| Testcontainers/PostgreSQL 集成测试 | 在 `maven:3.9.16-eclipse-temurin-21` 容器执行 `mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test` | 退出码 0；3 tests、0 failures、0 errors、0 skipped。覆盖 PostgreSQL 17、readiness 上/下状态、JDBC 查询与测试专用 Flyway migration。 |
+| Docker API 默认协商 | 同上测试但不传 `-Dapi.version=1.40` | 退出码 1；Testcontainers 1.21.3 使用 Docker API 1.32，daemon 最低 API 为 1.40。该失败不是应用测试断言失败。 |
+| Compose 镜像构建与启动（未加 Web healthcheck 的首次执行） | `DB_USER=openprotege DB_PASSWORD='[redacted local test value]' docker compose up --build --wait` | 命令退出码 0；镜像构建成功且 PostgreSQL 17.11 healthy。但应用进程随后因 JDBC 连接超时退出码 1。首次 Compose 未设置应用 healthcheck，所以其 `--wait` 只确认容器运行，不能作为成功证据。之后已增加 HTTP readiness healthcheck。 |
+| Compose 镜像构建与启动（启用 Web healthcheck 后复测） | `DB_USER=openprotege DB_PASSWORD='[redacted local test value]' docker compose up --build --wait` | Docker 镜像构建成功、数据库 healthy；`up --wait` 退出码 1：`container openprotege-server-1 exited (1)`。Web 日志显示 PostgreSQL JDBC connection attempt timed out。该执行环境中即使独立同 bridge 探测容器也无法连接 `database:5432`；Compose bridge 网络限制阻断部署级验收。 |
+| Compose readiness HTTP 请求 | `curl --fail --silent --show-error --write-out '\nHTTP_STATUS=%{http_code}\n' http://127.0.0.1:8080/actuator/health/readiness` | 退出码 56；connection reset。原因与 Web 容器启动时 DB 连接超时一致；未声称该次 Compose HTTP readiness 通过。 |
+| Standalone 容器运行/探针 | `docker run --rm --network host -e DB_URL=jdbc:postgresql://127.0.0.1:5432/openprotege -e DB_USER=openprotege -e DB_PASSWORD=<本地临时值> openprotege-server`；随后 curl readiness | 应用连接 Compose PostgreSQL 17.11，Flyway 报告 0 个业务迁移并成功启动；readiness 返回 `{"status":"UP"}`、HTTP 200。该验证绕过了 Compose bridge，不替代 Compose 联网验收。 |
+| 数据库本地状态 | 容器内 `pg_isready` 和 `psql -c 'SELECT 1'` | PostgreSQL 容器内部接受连接、查询返回 1；单独的同 bridge 探测容器无法连接服务名 `database:5432`，构成当前环境容器网络限制的证据。 |
+
+## 身份/团队/项目模块（2026-10-09 增量验证）
+
+| 检查 | 命令/执行方式 | 结果 |
+|---|---|---|
+| Java 21 PostgreSQL 集成测试 | 将 `server/pom.xml` 与 `server/src` 复制到可写 `/tmp/openprotege-server-validation-clean`；执行 `docker run --rm --network host -v /tmp/openprotege-server-validation-clean:/repo -v /tmp/openprotege-m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock -w /repo maven:3.9.16-eclipse-temurin-21 mvn -B -ntp -Dapi.version=1.40 test` | 退出码 0；3 test classes，5 tests，0 failures/errors/skips。包括 foundation 3 tests、身份/项目 API 1 个端到端集成测试和 bootstrap 缺配置单元测试。 |
+| 身份/授权 API 测试范围 | 上述 `IdentityProjectApiIntegrationTest` 与 `AdministratorBootstrapTest` | invitation acceptance/expired/replay/非管理员拒绝、token digest、bootstrap password hash/缺配置拒绝、login success/failure、session/logout、CSRF、匿名 public read/private deny、team member but not project member deny、Member/Viewer management deny。完整角色组合仍未覆盖。 |
+| 当前工作区 Maven 直接执行 | `mvn -B -ntp -f server/pom.xml -Dapi.version=1.40 test` | 未能执行成功：默认 Maven cache path AccessDenied；使用可写 Maven cache 后，现有 `server/target/classes/application.yml` 替换失败（Operation not permitted）。不是测试断言失败；改在隔离副本验证。 |
+
+容器运行时 Java `21.0.12.1`、Maven `3.9.16`、Testcontainers `1.21.3`，需显式 `-Dapi.version=1.40`。完整测试输出 `/tmp/openprotege-identity-java21-test.log`，证据见 [evidence-ledger.md](./evidence-ledger.md) E-36。该结果不验证 Compose bridge、Web UI、完整角色矩阵、登录限速或多副本运行。
 
 ## 固定上游 PoC 执行环境
 

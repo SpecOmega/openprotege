@@ -2,9 +2,9 @@
 
 An open platform for ontology engineering, semantic knowledge modeling, and collaborative governance.
 
-> **Project stage: engineering baseline and draft requirements**
+> **Project stage: Web backend foundation plus identity/team/project APIs**
 >
-> This repository does not yet contain a runnable desktop application, web application, or backend service. The product direction described here is not a claim of delivered functionality. There are currently no verified installation, build, or run commands. Requirements and architecture materials remain drafts.
+> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project metadata, and initial server-side role checks are implemented. The React UI, desktop client, ontology import/edit/versioning, full collaboration, and Compose bridge deployment acceptance remain incomplete.
 
 **Language:** [中文](README.md) | English
 
@@ -23,14 +23,13 @@ These statements record confirmed product direction. They do not mean the techno
 
 ## Current repository status
 
-The audited repository HEAD is `d9caafee6858a958ea7a2944d574407a79f88309`. That commit contains only the initial README, with no application source, dependency manifest, build script, or tests. The engineering and requirements documents currently in the working tree are baseline drafts, not a runnable product.
+The initial source-free baseline commit, `d9caafee6858a958ea7a2944d574407a79f88309`, contains only the README. The current working tree now includes a `server/` backend and PostgreSQL Compose foundation; do not mistake the initial repository state for the current code.
 
-Therefore:
+Current scope and boundaries:
 
-- There is no runnable desktop or web product yet.
-- There are no project-defined build, test, installation, or deployment commands.
+- Java 21 / Spring Boot 3, PostgreSQL 17, Flyway schema, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. PostgreSQL Testcontainers tests pass for invitation replay rejection, sessions/CSRF/logout, and team/project isolation boundaries; Compose bridge networking remains blocked in the current environment.
+- The React Web UI, desktop application, ontology upload/parsing/editing/versioning, full account recovery/brute-force protection, and production multi-instance session strategy are not implemented.
 - Ontology import, editing, validation, saving, export, and format round-trip fidelity have not been verified.
-- Authentication, server-side authorization, project isolation, and collaboration have not been verified.
 - AI, semantic search, and agent capabilities are not implemented features of the current checkout.
 - The project license has not been selected; Apache-2.0 is being evaluated as a candidate.
 
@@ -43,17 +42,23 @@ See the [engineering documentation index](docs/engineering/README.md) for the au
 | [Product vision](docs/product/vision.md) | Product positioning, confirmed direction, and scope boundaries |
 | [Draft SRS](docs/requirements/SRS.md) | Functional and non-functional requirements, separating product decisions from technical validation |
 | [Draft use cases](docs/requirements/use-cases.md) | Local editing, team projects, file exchange, and AI-assisted scenarios |
-| [Draft acceptance criteria](docs/requirements/acceptance-criteria.md) | Future verifiable acceptance conditions; current implementation is unverified |
+| [Draft acceptance criteria](docs/requirements/acceptance-criteria.md) | Future verifiable criteria; Web foundation AC-13 has test evidence, while product features remain unverified |
 | [Requirements traceability matrix](docs/requirements/traceability-matrix.csv) | Requirements mapped to acceptance criteria and implementation status |
+| [Identity/team/project data model](docs/architecture/data-model.md) | Initial entities, authorization boundaries, and open validation items |
+| [ADR-0002](docs/architecture/adr/0002-identity-team-project-authorization.md) | Identity and project authorization implementation baseline |
 | [Engineering audit and stage report](docs/engineering/README.md) | Repository baseline, architecture inventory, build/test status, security, upstreams, risks, and roadmap |
 
 Requirements and engineering documents are primarily in Chinese. English translation status is listed in the [engineering documentation index](docs/engineering/README.md). This English README does not imply that the other documents have complete English translations.
 
 ## Development, build, and tests
 
-The current checkout has no application source or build/test configuration, so there are no project installation, build, test, or launch instructions to provide yet. No build or test results are claimed.
+The Web service module requires Docker Engine/Compose v2. All 5 tests (including PostgreSQL Testcontainers integration tests) passed in Java 21 / Maven 3.9.16 using Docker API `1.40`, covering the service foundation and identity/project authorization. This environment's `server/target` and default Maven cache are not writable, so validation ran against an isolated source copy and temporary Maven cache. On a writable checkout, run:
 
-Once the technology stack has been selected and implemented, this section will be updated with verified development commands, environment versions, and test instructions.
+```sh
+mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
+```
+
+For a first empty database, set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`; the application has no default credentials. See the [build and test baseline](docs/engineering/03-build-and-test-baseline.md) for Compose limitations. There is no Web UI or ontology workflow yet.
 
 ## Upstream projects and license
 
