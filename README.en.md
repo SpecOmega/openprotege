@@ -69,4 +69,3 @@ Contribution guidelines, a code of conduct, and a security reporting channel hav
 
 - GitHub: <https://github.com/SpecOmega/openprotege>
 - Target website: <https://openprotege.com> (a project target; current site status and service availability have not been verified)
-
