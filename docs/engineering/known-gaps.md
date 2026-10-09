@@ -8,10 +8,10 @@
 
 | 缺口 | 状态 | 影响 / 可执行后续 |
 |---|---|---|
-| 仓库只有一句产品描述，没有已审定的范围、用户/角色、需求或验收标准。 | SOURCE-OBSERVED | 需求负责人确认第一阶段产品边界后建立编号需求与验收基线。（PROPOSED） |
+| 已建立产品决策记录与需求基线草案，但尚未冻结详细角色矩阵、OWL 2 Profile、格式保真判据和 API/冲突策略。 | SOURCE-OBSERVED / UNVERIFIED | 评审并冻结需求草案，将未决技术项继续关联 PoC 与 ADR。（PROPOSED） |
 | 没有项目许可证，也没有代码来源或第三方依赖清单。 | VERIFIED | 明确项目许可证与上游/依赖复用策略；复用代码前逐项审查许可证和归属。（PROPOSED） |
 | 没有可供维护、构建、测试或运行的应用实现。 | VERIFIED | MVP 方案必须从真实技术选择和可验证 PoC 开始，不得宣称已有产品能力。（PROPOSED） |
-| OpenProtégé 与 Protégé Desktop/WebProtégé 的技术关系未建立。 | SOURCE-OBSERVED | 依据固定提交进行构建、扩展、互操作及维护状态评估后，再作架构选择。（PROPOSED） |
+| OpenProtégé 仍未集成 Protégé Desktop/WebProtégé；固定上游已克隆，Desktop 构建通过，Web 完整 package 受 HTTP 504 阻塞。 | VERIFIED / BLOCKED | 完成 Web 构建并针对格式往返、插件、桌面/Web 交换、维护状态继续 PoC，再作架构选择。（PROPOSED） |
 
 ## P1：功能与质量证据缺口
 
@@ -31,9 +31,9 @@
 ## P2：构建、发布和协作证据
 
 - 没有测试套件、CI、构建/运行脚本、部署手册或发布工作流。（VERIFIED）
-- 没有中文/英文用户或开发文档，亦没有翻译状态说明；本次只新增中文审计文档。（VERIFIED）
+- 中英文项目 README 和中文工程/需求文档已存在；英文工程/需求文档翻译仍 Pending，尚无完整双语开发、架构和部署手册。（VERIFIED：当前文档树）
 - 没有截图、下载物、正式版本或生产部署配置。（SOURCE-OBSERVED）
-- 上游的构建、测试、格式保真、桌面/Web 交换、认证授权、插件与依赖许可证兼容均未验证。（UNVERIFIED；具体范围见 [upstream-audit.md](./upstream-audit.md)）
+- 上游固定提交已完整克隆；Desktop Maven 构建已通过。WebProtégé 构建在 JDK 25 遇到 AutoValue 生成类编译错误；JDK 21 + MongoDB 4.1 完成 4091 项模块测试，但之后 package 阶段被项目 GitHub Maven 仓库 HTTP 504 阻塞，未得到最终 Maven 退出结果。构建之外的运行、格式保真、桌面/Web 交换、认证授权安全、插件兼容与完整传递依赖许可证兼容仍未验证。（部分 VERIFIED、BLOCKED、UNVERIFIED；具体范围见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md) 与 [upstream-audit.md](./upstream-audit.md)）
 
 ## 边界说明
 
@@ -44,4 +44,4 @@
 
 ## 下一项明确任务
 
-由项目负责人确认产品 MVP 范围、预期桌面/Web 关系与本项目许可证策略；确认后建立需求基线，并针对固定上游提交执行单独的构建与能力 PoC。该工作尚未执行。（PROPOSED）
+先解决或隔离 WebProtégé 项目 Maven 仓库 HTTP 504 依赖阻塞，完成固定提交构建；随后以经批准的 RDF/XML/Turtle 样本验证往返、桌面/Web 文件交换和 Web 服务端授权。完整依赖许可证审查与 OpenProtégé 最终许可证决定仍待处理。（PROPOSED；尚未完成）

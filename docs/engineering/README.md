@@ -2,7 +2,9 @@
 
 审计基准日期 / Audit baseline date: 2026-10-09
 
-审计检出 / Audited checkout: `d9caafee6858a958ea7a2944d574407a79f88309`
+当前复核检出 / Current reviewed checkout: `e595add49b43a83bb68c7c618ee4f0416b2b2e6b`
+
+初始无源码基线 / Initial no-source baseline: `d9caafee6858a958ea7a2944d574407a79f88309`
 
 语言 / Language: 中文为主；逐篇英文翻译状态见下表。 / Chinese primary; English translation status is listed below.
 
@@ -53,4 +55,4 @@ The baseline records product decisions confirmed by the owner separately from te
 - [evidence-ledger.md](./evidence-ledger.md)
 - [known-gaps.md](./known-gaps.md)
 
-The upstream audit is limited to selected files at fixed commits; it is not a complete build, code, security, or license review.
+The upstream audit includes fixed-commit source review and limited build/test evidence; WebProtégé packaging remains blocked. It is not a complete runtime, security, interoperability, or dependency-license review.

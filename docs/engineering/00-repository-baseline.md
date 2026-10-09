@@ -4,11 +4,19 @@
 
 审计根目录：`/workspaces/openprotege`
 
-审计提交：`d9caafee6858a958ea7a2944d574407a79f88309`
+当前复核提交：`e595add49b43a83bb68c7c618ee4f0416b2b2e6b`
+
+初始代码基线提交：`d9caafee6858a958ea7a2944d574407a79f88309`
 
 语言：中文主文档；英文翻译状态为 Pending，见 [索引](./README.md)。
 
 ## 结论摘要
+
+### 当前复核（2026-10-09；文档修改开始前）
+
+修改文档前，当前分支为 `main`，HEAD 为 `e595add49b43a83bb68c7c618ee4f0416b2b2e6b`（`docs: clean baseline markdown formatting`），与 `origin/main` 对齐且工作区干净。历史含三个提交：初始 README、工程/需求文档、Markdown 空白清理。当前已有中文 [README](../../README.md)、英文 [README.en.md](../../README.en.md) 和已提交的文档基线；仍未发现 OpenProtégé 应用源码、依赖清单、构建/测试入口或项目 LICENSE。（VERIFIED：`git status --short --branch`、`git rev-parse HEAD`、`git --no-pager log -3 --oneline --decorate`、`git ls-files`）
+
+下表原始检查结果保留为初始审计时的历史基线，不应与当前 HEAD 混用。当前无代码的结论仍成立，但“只跟踪 README”“工作区有未跟踪 docs”等描述仅针对初始提交/初始审计时点。
 
 | ID | 发现 | 状态 | 影响 / 风险 | 后续任务 |
 |---|---|---|---|---|

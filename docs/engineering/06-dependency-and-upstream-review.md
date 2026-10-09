@@ -2,22 +2,22 @@
 
 审计日期：2026-10-09
 
-OpenProtégé 基线 HEAD：`d9caafee6858a958ea7a2944d574407a79f88309`。
+OpenProtégé 当前 HEAD：`e595add49b43a83bb68c7c618ee4f0416b2b2e6b`。初始无源码基线 HEAD：`d9caafee6858a958ea7a2944d574407a79f88309`。
 
 语言：中文主文档；英文翻译状态为 Pending，见 [索引](./README.md)。
 
 ## OpenProtégé 当前依赖
 
-当前 HEAD 只跟踪 `README.md`；未发现 Maven、Gradle、npm、Python、Go、Rust 等依赖清单、锁文件、子模块、上游代码拷贝或组件引用。（VERIFIED：`git ls-files`、提交历史与目录盘点）
+当前 HEAD `e595add49b43a83bb68c7c618ee4f0416b2b2e6b` 跟踪 README 与审计/需求文档；未发现应用依赖清单、锁文件、子模块、上游代码拷贝或组件引用。（VERIFIED：`git ls-files`、当前提交和目录盘点）
 
-因此 OpenProtégé 的直接依赖版本、传递依赖、许可证清单、漏洞状态及可复现构建均为 `UNVERIFIED`；目前无法执行有意义的依赖解析或许可证扫描。
+因此 OpenProtégé 的应用直接依赖版本、传递依赖、许可证清单、漏洞状态及可复现应用构建均为 `UNVERIFIED`；目前无法执行有意义的依赖解析或许可证扫描。两个上游已分别按固定 SHA 完整克隆，其中 Desktop 的构建通过、WebProtégé 构建情况见下表和 [upstream-audit.md](./upstream-audit.md)；上游构建不构成 OpenProtégé 已集成或已构建的证据。
 
 ## 上游固定提交
 
 | 上游仓库 | 本次解析的固定 SHA | 来源证据 | 观察结果与限制 |
 |---|---|---|---|
-| `protegeproject/protege` | `bf03cccc65ea664e139d6829bba6d209ef58ee55` | `git ls-remote` 的 `HEAD`/`master`；GitHub API 固定 SHA 下根目录、README、根 POM、`license.txt` | 上游自述为 Protégé Desktop；Maven 多模块，含 `protege-desktop`、编辑器和 launcher；BSD 2-Clause 风格许可证文件。未完整克隆、构建、运行或审计传递依赖。 |
-| `protegeproject/webprotege` | `1e84fa02aef68be45f18c08dbeae94bec9b04a41` | `git ls-remote` 的 `HEAD`/`master`；GitHub API 固定 SHA 下根目录、README、根 POM、`license.txt` | 上游自述为 Web 应用；根目录含 Maven client/server/shared 模块及 Docker 配置；README 表示仓库正被细粒度仓库取代；BSD 2-Clause 风格许可证文件。未完整克隆或验证运行行为。 |
+| `protegeproject/protege` | `bf03cccc65ea664e139d6829bba6d209ef58ee55`，提交时间 `2026-09-23T22:12:40+01:00` | 完整克隆并 detached checkout；HEAD 复核；固定提交根目录、POM、README、许可证、CI、测试。 | Desktop Maven `clean verify` 在 JDK 21.0.12.1/Maven 3.9.16 下退出码 0；531 tests、0 failures、0 errors、3 skipped。未做 GUI/往返/互操作 PoC。 |
+| `protegeproject/webprotege` | `1e84fa02aef68be45f18c08dbeae94bec9b04a41`，提交时间 `2026-07-28T13:56:32-07:00` | 完整克隆并 detached checkout；HEAD 复核；固定提交根目录、POM、README、许可证、测试。 | JDK 25 两次 `clean package` 失败（先因 Mongo 缺失、后因 AutoValue 类型未生成）；JDK 21 + MongoDB 4.1.13 重试完成 5 个模块的 4091 项测试且无失败，但完整 package 阶段在项目 GitHub Maven 仓库 HTTP 504 后阻塞并停止，未取得 Maven 最终状态。README 称该仓库正被细粒度仓库取代。 |
 
 逐项来源和措辞边界见 [upstream-audit.md](./upstream-audit.md)。
 
@@ -25,11 +25,11 @@ OpenProtégé 基线 HEAD：`d9caafee6858a958ea7a2944d574407a79f88309`。
 
 | 问题 | 结论 | 状态 |
 |---|---|---|
-| 是否存在 Git fork 关系 | 本地 OpenProtégé 是无父提交的单提交根历史，当前无 upstream remote；本次未能通过 GitHub 认证元数据确认 fork 标记。不得断言 GitHub 上绝对不是 fork。 | SOURCE-OBSERVED / UNVERIFIED |
-| 是否复用上游源码 | 当前跟踪树没有上游源码或子模块。 | VERIFIED（当前检出） |
-| 是否使用上游组件/协议/格式 | 当前无依赖配置或代码引用，无法确认使用。 | SOURCE-OBSERVED |
+| 是否存在 Git fork 关系 | 当前 OpenProtégé 历史为自主根提交并无上游 remote；未取得 GitHub fork 元数据，不能断言远端 fork 标记状态。 | SOURCE-OBSERVED / UNVERIFIED |
+| 是否复用上游源码 | 当前 OpenProtégé 跟踪树没有上游源码或子模块。 | VERIFIED（当前检出） |
+| 是否使用上游组件/协议/格式 | OpenProtégé 当前没有依赖配置或应用代码引用，尚未观察到组件集成；未来使用 OWL/RDF 格式属于已确认需求，不是现有代码能力。 | SOURCE-OBSERVED |
 | 上游当前固定版本及依赖 | 表内固定 SHA 是远端 HEAD 解析结果，不是 OpenProtégé 已采用的版本；OpenProtégé 无版本声明。 | VERIFIED / SOURCE-OBSERVED |
-| 上游许可证兼容性 | 上游许可证文件观察为 BSD 2-Clause 风格；OpenProtégé 尚无许可证，且未审计传递依赖，兼容性未判定。 | SOURCE-OBSERVED / UNVERIFIED |
+| 上游许可证兼容性 | 两上游的 `license.txt` 为 BSD 2-Clause 风格；OpenProtégé 尚无 LICENSE，且上游传递依赖许可证未审计，兼容性未判定。负责人确认 Apache-2.0 为待评估方案，不是决定。 | SOURCE-OBSERVED / UNVERIFIED |
 | 重复实现/协议兼容 | 没有 OpenProtégé 实现可比较。 | UNVERIFIED |
 | 上游维护/迁移风险 | WebProtégé README 明确提示该仓库正在被更细粒度仓库取代；具体替代仓库选择和支持状态未验证。 | SOURCE-OBSERVED / UNVERIFIED |
 
@@ -37,6 +37,6 @@ OpenProtégé 基线 HEAD：`d9caafee6858a958ea7a2944d574407a79f88309`。
 
 ## 决策前 PoC
 
-建议分别以固定提交和受支持工具链验证 Desktop、WebProtégé 的构建/测试；验证 OWL/RDF 导入—修改—保存—导出往返、插件扩展点、Desktop/Web 数据交换、Web 服务端认证授权与项目隔离；解析完整依赖树及许可证。保存完整命令、环境、退出码、日志和测试数据哈希。（PROPOSED）
+已完成固定提交完整克隆与部分构建/测试 PoC；WebProtégé JDK 21 package 因项目 Maven 仓库 HTTP 504 阻塞，详见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md)。下一步解决依赖获取阻塞，再验证 OWL/RDF 导入—编辑—保存—导出往返、插件扩展点、Desktop/Web 文件交换、Web 服务端认证授权与项目隔离；解析完整依赖树及许可证。保存完整命令、环境、可得退出状态、日志和测试数据哈希。（PROPOSED；未完成部分为 UNVERIFIED/BLOCKED）
 
 在上述结果、产品职责和许可证策略确认之前，不选择“整体 fork”或“重写”，也不宣称已有互操作能力。

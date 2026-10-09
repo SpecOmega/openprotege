@@ -2,11 +2,17 @@
 
 审计日期：2026-10-09
 
-审计范围：当前本地检出及其可访问的 Git 元数据、跟踪文件、两个指定上游仓库的固定提交。
+审计范围：OpenProtégé 当前本地检出（本报告最初记录的代码基线为 `d9caafee6858a958ea7a2944d574407a79f88309`，当前复核为 `e595add49b43a83bb68c7c618ee4f0416b2b2e6b`），以及两个指定上游的固定提交。
 
 状态约定：`VERIFIED` 表示执行了可复现检查并取得证据；`SOURCE-OBSERVED` 表示从文件或配置中观察到但未运行验证；`PROPOSED` 表示建议；`UNVERIFIED` 表示尚未验证；`BLOCKED` 表示受环境、权限或网络限制。
 
 ## 摘要
+
+### 当前复核补充（2026-10-09）
+
+当前分支 `main`、HEAD `e595add49b43a83bb68c7c618ee4f0416b2b2e6b`，与 `origin/main` 对齐且工作区干净；Git 历史有三个提交。项目已有中英文 README 和已提交的工程/需求草案。应用源码、依赖清单、构建/测试入口、CI 和 LICENSE 仍未发现。（VERIFIED：`git status --short --branch`、`git rev-parse HEAD`、`git --no-pager log -3 --oneline --decorate`、`git ls-files`）
+
+两个指定上游此后已完整克隆并固定 checkout，Desktop 固定提交在 JDK 21 下 `clean verify` 成功；WebProtégé 的首次构建因缺少 MongoDB 失败、JDK 25 构建遇到 AutoValue 生成类编译失败，JDK 21 构建重试结果待确认。详见 [03-build-and-test-baseline.md](./03-build-and-test-baseline.md)。这些结果不改变 OpenProtégé 尚无产品实现的结论。
 
 | 结论 | 状态 | 证据 |
 |---|---|---|
@@ -16,7 +22,7 @@
 | 当前仓库没有桌面/Web 应用、后端、数据库、API、插件、构建脚本、测试、CI、部署配置或项目许可证文件。 | VERIFIED | 对 Git 跟踪树与工作目录的盘点，E-03、E-04 |
 | 不能据此声称 OpenProtégé 已基于或集成 Protégé Desktop/WebProtégé；现有仓库没有可观察到的集成证据。 | SOURCE-OBSERVED | E-03、E-04；上游比较见 [upstream-audit.md](./upstream-audit.md) |
 
-本审计反映指定检出状态，不代表远端后来发生的变更。上游信息仅作为固定提交的静态源码证据，不视为本项目的实现或验证结果。
+本审计中原始 Git/目录表格反映初始提交时的状态；当前复核以上述补充和 [00-repository-baseline.md](./00-repository-baseline.md) 为准。上游信息是独立固定提交的源码/构建证据，不视为 OpenProtégé 的实现或验证结果。
 
 ## Git 与工作区
 
