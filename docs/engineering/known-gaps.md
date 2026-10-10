@@ -15,13 +15,13 @@
 
 ## P1：功能与质量证据缺口
 
-以下能力在当前代码中都没有实现证据；列项是需要需求化/验证的范围，不是对方案的既定承诺。
+以下为尚未实现或尚未充分验收的能力；列项是需要需求化/验证的范围，不是对方案的既定承诺。
 
 | 能力 | 状态 | 后续验证方向 |
 |---|---|---|
 | 桌面端、Web 端、后端、持久化与 API | UNVERIFIED | 基于已确认技术栈建立可运行的最小端到端切片。 |
 | 项目、工作区、成员、权限、版本、审计与项目隔离 | UNVERIFIED | 建立权限模型和越权读取/写入集成测试。 |
-| OpenProtégé 本体导入、校验、保存、导出和 OWL/RDF 往返保真 | UNVERIFIED；上游 OWLAPI 独立 PoC 部分验证 | 固定 `pizza.owl` 单样例通过 OWLAPI RDF/XML↔Turtle 精确公理往返；仍需编辑器/应用实际流程、错误输入、安全限制及更多 OWL 2 构造验证。 |
+| OpenProtégé 本体导入、校验、保存、导出、推理和 OWL/RDF 往返保真 | PARTIAL | HermiT OWL 2 DL profile/consistency/unsatisfiable classes/target hierarchy 服务与 Web 入口已实现，基础推理单元测试通过；仍需 API 权限矩阵、超时取消、复杂/大型本体资源安全、编辑器/应用往返和更多 OWL 2 构造验证。 |
 | 身份认证、授权、API 错误与版本策略 | UNVERIFIED | 形成安全边界和接口契约，并执行未授权/越权测试。 |
 | 外部 IRI 解析策略与 SSRF 防护 | UNVERIFIED | 定义默认拒绝/允许边界并验证网络访问行为。 |
 | XSS、敏感信息泄露、供应链风险 | UNVERIFIED | 应用存在后执行威胁建模、输入输出测试和依赖扫描。 |

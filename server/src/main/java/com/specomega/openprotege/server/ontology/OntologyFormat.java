@@ -6,7 +6,7 @@ import org.semanticweb.owlapi.model.OWLDocumentFormat;
 
 import java.util.Locale;
 
-enum OntologyFormat {
+public enum OntologyFormat {
     RDF_XML("RDF/XML", "application/rdf+xml", ".owl", ".rdf", ".xml"),
     TURTLE("Turtle", "text/turtle", ".ttl");
 

@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import org.springframework.stereotype.Component;
 
 @Component
-final class OntologyParser {
+public final class OntologyParser {
     ParsedOntology parse(Path file, String originalFileName, String requestedFormat) {
         OntologyFormat format = OntologyFormat.parse(requestedFormat);
         if (format == null && originalFileName != null && originalFileName.lastIndexOf('.') > 0) {
@@ -55,6 +55,26 @@ final class OntologyParser {
                     Files.deleteIfExists(file);
                 } catch (IOException exception) {
                     throw new IllegalStateException("Unable to remove temporary ontology file", exception);
+                }
+            }
+        }
+    }
+
+    public LoadedOntology load(byte[] content, OntologyFormat format) {
+        Path file = null;
+        try {
+            file = Files.createTempFile("openprotege-reasoning-", format.extension());
+            Files.write(file, content);
+            OWLOntology ontology = parseWithFormat(file, format);
+            return new LoadedOntology(ontology.getOWLOntologyManager(), ontology);
+        } catch (IOException exception) {
+            throw OntologyException.parsingFailure(exception);
+        } finally {
+            if (file != null) {
+                try {
+                    Files.deleteIfExists(file);
+                } catch (IOException exception) {
+                    throw new IllegalStateException("Unable to remove temporary reasoning input", exception);
                 }
             }
         }
@@ -119,4 +139,11 @@ final class OntologyParser {
     }
 
     record ParsedOntology(OntologyFormat format, String ontologyIri, long axiomCount) {}
+
+    public record LoadedOntology(OWLOntologyManager manager, OWLOntology ontology) implements AutoCloseable {
+        @Override
+        public void close() {
+            manager.removeOntology(ontology);
+        }
+    }
 }

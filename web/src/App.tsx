@@ -23,6 +23,23 @@ type Version = {
 type VersionPage = { versions: Version[]; pageNum: number; pageSize: number; total: number };
 type AiStatus = { configured: boolean; provider: string; model: string };
 type ChatMessage = { role: "user" | "assistant"; content: string };
+type ReasoningValidation = {
+  versionId: string;
+  inOwl2DlProfile: boolean;
+  profileViolations: string[];
+  consistent: boolean | null;
+  unsatisfiableClassIris: string[];
+  axiomCount: number;
+  elapsedMillis: number;
+};
+type ClassHierarchy = {
+  classIri: string;
+  consistent: boolean;
+  direct: boolean;
+  superClassIris: string[];
+  subClassIris: string[];
+  elapsedMillis: number;
+};
 
 let csrfToken = "";
 
@@ -76,6 +93,10 @@ function App() {
   const [chatBusy, setChatBusy] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [invitationToken, setInvitationToken] = useState("");
+  const [reasoningVersionId, setReasoningVersionId] = useState("");
+  const [reasoningValidation, setReasoningValidation] = useState<ReasoningValidation | null>(null);
+  const [classHierarchy, setClassHierarchy] = useState<ClassHierarchy | null>(null);
+  const [reasoningBusy, setReasoningBusy] = useState(false);
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === selectedId) ?? null,
@@ -289,6 +310,45 @@ function App() {
       URL.revokeObjectURL(anchor.href);
     } catch (reason) {
       reportError(reason);
+    }
+  }
+
+  async function validateVersion(version: Version) {
+    if (!selectedProject) return;
+    setReasoningBusy(true);
+    setReasoningVersionId(version.id);
+    setReasoningValidation(null);
+    setClassHierarchy(null);
+    try {
+      setReasoningValidation(await api<ReasoningValidation>(
+        `/api/projects/${selectedProject.id}/ontologies/versions/${version.id}/reasoning/validate`,
+        { method: "POST", body: jsonBody({}) },
+      ));
+    } catch (reason) {
+      reportError(reason);
+    } finally {
+      setReasoningBusy(false);
+    }
+  }
+
+  async function queryClassHierarchy(event: FormEvent<HTMLFormElement>, version: Version) {
+    event.preventDefault();
+    if (!selectedProject) return;
+    const form = new FormData(event.currentTarget);
+    setReasoningBusy(true);
+    try {
+      setClassHierarchy(await api<ClassHierarchy>(
+        `/api/projects/${selectedProject.id}/ontologies/versions/${version.id}/reasoning/hierarchy`,
+        {
+          method: "POST",
+          body: jsonBody({ classIri: form.get("classIri"), direct: form.get("direct") === "true" }),
+        },
+      ));
+      setReasoningVersionId(version.id);
+    } catch (reason) {
+      reportError(reason);
+    } finally {
+      setReasoningBusy(false);
     }
   }
 
@@ -518,13 +578,48 @@ function App() {
                       <input name="file" type="file" accept=".owl,.rdf,.xml,.ttl,.turtle,application/rdf+xml,text/turtle" required /></label>
                     <button className="button button-primary" type="submit">Import file</button>
                   </form>}
-                  {versions.length ? <div className="version-list">{versions.map((version) => <div className="version-row" key={version.id}>
-                    <span className="file-icon">{version.format === "Turtle" ? "TTL" : "OWL"}</span>
-                    <span className="version-info"><strong>{version.fileName}</strong>
-                      <small>{version.axiomCount.toLocaleString()} axioms · {new Date(version.createdAt).toLocaleString()}</small>
-                      {version.ontologyIri && <small className="iri">{version.ontologyIri}</small>}</span>
-                    <div className="version-actions"><button className="text-button" onClick={() => void exportVersion(version)}>Download</button>
-                      <button className="text-button" onClick={() => void exportVersion(version, version.format === "Turtle" ? "RDF/XML" : "Turtle")}>Convert</button></div>
+                  {versions.length ? <div className="version-list">{versions.map((version) => <div className="version-entry" key={version.id}>
+                    <div className="version-row">
+                      <span className="file-icon">{version.format === "Turtle" ? "TTL" : "OWL"}</span>
+                      <span className="version-info"><strong>{version.fileName}</strong>
+                        <small>{version.axiomCount.toLocaleString()} axioms · {new Date(version.createdAt).toLocaleString()}</small>
+                        {version.ontologyIri && <small className="iri">{version.ontologyIri}</small>}</span>
+                      <div className="version-actions"><button className="text-button" onClick={() => void exportVersion(version)}>Download</button>
+                        <button className="text-button" onClick={() => void exportVersion(version, version.format === "Turtle" ? "RDF/XML" : "Turtle")}>Convert</button>
+                        <button className="text-button" disabled={reasoningBusy} onClick={() => void validateVersion(version)}>Validate & reason</button></div>
+                    </div>
+                    {reasoningVersionId === version.id && <div className="reasoning-panel">
+                      <strong>OWL 2 DL validation and reasoning</strong>
+                      {reasoningValidation && <>
+                        <p>{reasoningValidation.inOwl2DlProfile ? "In OWL 2 DL profile" : "Outside OWL 2 DL profile"}
+                          {reasoningValidation.consistent !== null && ` · ${reasoningValidation.consistent ? "Consistent" : "Inconsistent"}`}
+                          {` · ${reasoningValidation.axiomCount.toLocaleString()} axioms · ${reasoningValidation.elapsedMillis} ms`}</p>
+                        {!!reasoningValidation.profileViolations.length && <details>
+                          <summary>Profile violations ({reasoningValidation.profileViolations.length})</summary>
+                          <ul>{reasoningValidation.profileViolations.map((violation, index) => <li key={index}>{violation}</li>)}</ul>
+                        </details>}
+                        {reasoningValidation.unsatisfiableClassIris.length > 0
+                          ? <details><summary>Unsatisfiable classes ({reasoningValidation.unsatisfiableClassIris.length})</summary>
+                            <ul>{reasoningValidation.unsatisfiableClassIris.map((iri) => <li key={iri}><code>{iri}</code></li>)}</ul></details>
+                          : reasoningValidation.consistent !== null && <p>No unsatisfiable named classes reported.</p>}
+                      </>}
+                      <form className="hierarchy-form" onSubmit={(event) => void queryClassHierarchy(event, version)}>
+                        <input name="classIri" type="text" required maxLength={2048} placeholder="Named class IRI" aria-label="Named class IRI" />
+                        <select name="direct" defaultValue="false" aria-label="Hierarchy depth">
+                          <option value="false">All ancestors and descendants</option><option value="true">Direct only</option>
+                        </select>
+                        <button className="button button-secondary" disabled={reasoningBusy} type="submit">Query hierarchy</button>
+                      </form>
+                      {classHierarchy && reasoningVersionId === version.id && <>
+                        <p>{classHierarchy.consistent ? `Class hierarchy · ${classHierarchy.elapsedMillis} ms` : "Hierarchy unavailable: ontology is inconsistent."}</p>
+                        {classHierarchy.consistent && <div className="hierarchy-results">
+                          <div><strong>Superclasses</strong>{classHierarchy.superClassIris.length
+                            ? <ul>{classHierarchy.superClassIris.map((iri) => <li key={iri}><code>{iri}</code></li>)}</ul> : <small>None</small>}</div>
+                          <div><strong>Subclasses</strong>{classHierarchy.subClassIris.length
+                            ? <ul>{classHierarchy.subClassIris.map((iri) => <li key={iri}><code>{iri}</code></li>)}</ul> : <small>None</small>}</div>
+                        </div>}
+                      </>}
+                    </div>}
                   </div>)}</div> : <div className="empty-versions"><span>⇧</span><p>No ontology snapshots yet.</p></div>}
                 </div>
               </> : <div className="empty-detail"><span>⌘</span><h2>Select a project</h2><p>Choose a project from your workspace to view its versions and settings.</p></div>}

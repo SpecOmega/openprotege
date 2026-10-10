@@ -18,6 +18,9 @@ openprotege:
     admin-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
   ontology:
     max-file-size: ${OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE:500MB}
+  reasoning:
+    max-axioms: ${OPENPROTEGE_REASONING_MAX_AXIOMS:100000}
+    timeout: ${OPENPROTEGE_REASONING_TIMEOUT:60s}
   ai:
     enabled: ${OPENPROTEGE_AI_ENABLED:false}
     provider: ${OPENPROTEGE_AI_PROVIDER:openai-compatible}

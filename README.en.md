@@ -2,9 +2,9 @@
 
 An open platform for ontology engineering, semantic knowledge modeling, and collaborative governance.
 
-> **Project stage: Web workspace, backend APIs, and first ontology/AI chat slices**
+> **Project stage: Web workspace, backend APIs, and first ontology/AI/reasoning slices**
 >
-> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project APIs, a React web workspace, an initial RDF/XML/Turtle ontology import/version/export slice, and an opt-in OpenAI-compatible AI chat proxy configured with server-side secrets are implemented. The desktop client, ontology editing/restore, round-trip acceptance, maximum-file resource testing, full collaboration, browser E2E testing, and Compose bridge deployment acceptance remain incomplete.
+> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project APIs, a React web workspace, RDF/XML/Turtle ontology import/version/export, an initial HermiT OWL 2 DL profile/consistency/hierarchy reasoning slice, and an opt-in OpenAI-compatible AI chat proxy configured with server-side secrets are implemented. The desktop client, ontology editing/restore, round-trip acceptance, maximum-file resource testing, full collaboration, browser E2E testing, and Compose bridge deployment acceptance remain incomplete.
 
 **Language:** [中文](README.md) | English
 
@@ -19,7 +19,7 @@ OpenProtégé aims to support individuals and teams working on ontology engineer
 - **Deployment direction:** self-hosting first.
 - **AI extensions:** the initial direction is suggestion-based modeling and read-only semantic search; users must confirm any write that applies an AI suggestion.
 
-These statements record confirmed product direction. They do not mean the technology has been selected, implemented, or validated. In particular, parsers and reasoners, desktop/web integration, role details, and real-time synchronization still require evaluation and decisions.
+These statements record confirmed product direction. They do not mean all capabilities are implemented or validated. HermiT is selected for the first OWL 2 DL reasoning slice; desktop/web integration, role details, and real-time synchronization still require evaluation and decisions.
 
 ## Current repository status
 
@@ -30,6 +30,7 @@ Current scope and boundaries:
 - Java 21 / Spring Boot 3, PostgreSQL 17, Flyway schema, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. PostgreSQL Testcontainers tests pass for invitation replay rejection, sessions/CSRF/logout, and team/project isolation boundaries; Compose bridge networking remains blocked in the current environment.
 - The React UI includes local login/invitation acceptance, team/project listing and creation, project member settings, ontology snapshot import/version browsing/download/format conversion, and AI chat. Browser flows have not received E2E acceptance. Ontology editing/restore/deletion, the desktop client, full account recovery/brute-force protection, and production multi-instance sessions are not implemented.
 - Small ontology parsing/integration samples pass; Pizza round-trip fidelity and performance/resource safety at the 500 MiB maximum remain unverified.
+- HermiT provides OWL 2 DL profile checks, ontology consistency/unsatisfiable named-class diagnosis, and inferred target-class super/subclass queries. The initial service is limited to one active worker, 100,000 axioms, and 60 seconds by default; timeout cancellation, concurrent load, large/adversarial ontology resource use, and browser E2E remain unverified.
 - AI chat can be configured for an OpenAI-compatible provider (with a DeepSeek configuration template); it is disabled by default, API keys remain server-side, and the chat neither reads ontologies nor writes projects. Semantic search and Agents are not implemented; real provider connectivity and privacy review remain outstanding.
 - The project license has not been selected; Apache-2.0 is being evaluated as a candidate.
 

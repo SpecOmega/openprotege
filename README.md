@@ -2,9 +2,9 @@
 
 面向本体工程、语义知识建模与协作治理的开放平台。
 
-> **项目阶段：Web 工作区、后端 API 与首个本体文件/AI chat 切片**
+> **项目阶段：Web 工作区、后端 API 与首个本体文件/AI chat/推理切片**
 >
-> 当前已实现 Spring Boot/PostgreSQL 基础、本地账号邀请/会话、团队/项目 API、React Web 工作区、RDF/XML/Turtle 本体文件导入与版本/导出切片，以及默认关闭且服务端配置密钥的 OpenAI-compatible AI chat。桌面端、本体编辑/恢复、格式往返验收、最大文件资源测试、完整协作功能、浏览器 E2E 及 Compose bridge 部署验收尚未完成。
+> 当前已实现 Spring Boot/PostgreSQL 基础、本地账号邀请/会话、团队/项目 API、React Web 工作区、RDF/XML/Turtle 本体文件导入与版本/导出、HermiT OWL 2 DL profile/一致性/不可满足类/类层级推理切片，以及默认关闭且服务端配置密钥的 OpenAI-compatible AI chat。桌面端、本体编辑/恢复、格式往返验收、最大文件资源测试、完整协作功能、浏览器 E2E 及 Compose bridge 部署验收尚未完成。
 
 **语言：** 中文 | [English](README.en.md)
 
@@ -19,7 +19,7 @@ OpenProtégé 的目标是支持个人与团队用户开展本体工程，并逐
 - **部署方向：** 自托管优先。
 - **AI 扩展：** 首期目标为建议式建模与只读语义检索；采纳 AI 建议产生的写入必须由用户确认。
 
-上述内容记录已确认的产品方向，不代表相关技术已选定、实现或通过验证。尤其是解析器与推理工具、桌面/Web 集成方式、角色权限细则以及实时同步方案，仍需后续验证与决策。
+上述内容记录已确认的产品方向，不代表所有技术已实现或通过验证。推理首版已选用 HermiT；桌面/Web 集成方式、角色权限细则以及实时同步方案仍需后续验证与决策。
 
 ## 当前仓库状态
 
@@ -30,6 +30,7 @@ OpenProtégé 的目标是支持个人与团队用户开展本体工程，并逐
 - 已添加 Java 21 / Spring Boot 3 服务、PostgreSQL 17、Flyway schema、Actuator readiness、显式首管理员引导、本地会话/CSRF、一次性邀请、团队/项目 API 与基础服务端角色校验。PostgreSQL Testcontainers 测试通过，覆盖邀请复用拒绝、会话/CSRF/logout、团队与项目隔离边界；Compose bridge 仍受当前执行环境阻塞。
 - Web UI 已包含本地登录/邀请接受、团队/项目列表与创建、项目成员设置、本体快照导入/版本浏览/文件下载与格式转换，以及 AI chat。具体浏览器流程尚未做 E2E 验收；版本编辑/恢复/删除、桌面应用、完整账户恢复/防暴力破解机制和生产级多实例会话方案未实现。
 - 本体解析有小型集成样例；Pizza 本体往返保真、500 MiB 最大尺寸下的性能与资源安全尚未验证。
+- 推理首版使用 HermiT 提供 OWL 2 DL profile 检查、一致性/不可满足命名类诊断和目标类推断层级查询；服务端单 worker、100,000 公理和 60 秒默认上限。功能单元测试已覆盖有效 profile、一致 ontology 下的不可满足类和推断祖先/后代；超时取消、并发压力、大型/恶意本体资源消耗及浏览器 E2E 未验收。
 - AI chat 可通过服务端环境变量选择 OpenAI-compatible provider（默认 DeepSeek 配置模板）；功能默认关闭，密钥不下发浏览器且不存入数据库。AI 不会读取本体或写入项目，语义检索和 Agent 未实现；真实 provider 联通/隐私审查尚未完成。
 - 本项目许可证尚未确定；Apache-2.0 正在作为候选方案评估。
 
@@ -65,7 +66,7 @@ Vite 开发服务器将 `/api` 转发至 `http://localhost:8080`。生产 Compos
 mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
 ```
 
-首次启动空数据库还须设置 `ADMIN_BOOTSTRAP_EMAIL` 和 `ADMIN_BOOTSTRAP_PASSWORD`，不得使用仓库默认凭证。本体上传默认上限为 500 MiB，可通过 `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE` 调整；该上限不是最大文件性能通过的证据。AI 可选配置：`OPENPROTEGE_AI_ENABLED=true`、`OPENPROTEGE_AI_PROVIDER=deepseek`、`OPENPROTEGE_AI_BASE_URL=https://api.deepseek.com/v1`、`OPENPROTEGE_AI_MODEL=deepseek-chat`、`OPENPROTEGE_AI_API_KEY=<server-side secret>`。其它 OpenAI-compatible 服务可覆盖 provider、base URL 和 model。API key 仅通过部署环境传给服务端，切勿放入 Web 配置、提交至仓库或发给客户端。Compose bridge、AI 外发数据政策和功能边界见[工程文档](docs/engineering/README.md)。
+首次启动空数据库还须设置 `ADMIN_BOOTSTRAP_EMAIL` 和 `ADMIN_BOOTSTRAP_PASSWORD`，不得使用仓库默认凭证。本体上传默认上限为 500 MiB，可通过 `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE` 调整；该上限不是最大文件性能通过的证据。推理限制可通过 `OPENPROTEGE_REASONING_MAX_AXIOMS`（默认 100000）和 `OPENPROTEGE_REASONING_TIMEOUT`（默认 `60s`）调整；axiom 上限在解析后检查，不是解析期内存限制。AI 可选配置：`OPENPROTEGE_AI_ENABLED=true`、`OPENPROTEGE_AI_PROVIDER=deepseek`、`OPENPROTEGE_AI_BASE_URL=https://api.deepseek.com/v1`、`OPENPROTEGE_AI_MODEL=deepseek-chat`、`OPENPROTEGE_AI_API_KEY=<server-side secret>`。其它 OpenAI-compatible 服务可覆盖 provider、base URL 和 model。API key 仅通过部署环境传给服务端，切勿放入 Web 配置、提交至仓库或发给客户端。Compose bridge、AI 外发数据政策和功能边界见[工程文档](docs/engineering/README.md)。
 
 ## 上游与许可证
 

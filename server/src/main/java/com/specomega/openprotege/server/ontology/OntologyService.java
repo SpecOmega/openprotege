@@ -174,6 +174,12 @@ public class OntologyService {
         return findVersionMetadata(projectId, versionId);
     }
 
+    public OntologyDocument getOntologyDocument(UUID projectId, UUID versionId, Authentication actor) {
+        projectService.get(projectId, actor);
+        StoredVersion version = findVersion(projectId, versionId);
+        return new OntologyDocument(version.content(), version.format(), version.id());
+    }
+
     private StoredVersion findVersion(UUID projectId, UUID versionId) {
         return jdbcTemplate.query(
                         """
@@ -247,6 +253,7 @@ public class OntologyService {
                               long axiomCount, String fileName, Instant createdAt) {}
     public record VersionPage(List<VersionView> versions, int pageNum, int pageSize, long total) {}
     public record ExportFile(byte[] content, String mediaType, String fileName) {}
+    public record OntologyDocument(byte[] content, OntologyFormat format, UUID versionId) {}
     private record StoredVersion(UUID id, UUID projectId, OntologyFormat format, byte[] content,
                                  String ontologyIri, long axiomCount, String fileName, Instant createdAt) {}
 }

@@ -72,6 +72,8 @@ header described above.
 | `GET /api/projects/{projectId}/ontologies/versions` | Authorized project reader; list version metadata (`pageNum`, `pageSize`) |
 | `GET /api/projects/{projectId}/ontologies/versions/{versionId}` | Authorized project reader; get version metadata |
 | `GET /api/projects/{projectId}/ontologies/versions/{versionId}/export` | Authorized project reader, including anonymous public-project readers; optional `format=RDF/XML|Turtle` |
+| `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/validate` | Authorized project reader; OWL 2 DL profile, consistency and unsatisfiable named classes |
+| `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/hierarchy` | Authorized project reader; request `{"classIri":"https://example.org/Thing","direct":false}` for inferred super/subclasses |
 
 Team-project membership requires current team membership and explicit project
 membership. Anonymous users may only read public projects. Private projects
@@ -85,6 +87,14 @@ to adjust the file limit; `OPENPROTEGE_ONTOLOGY_MAX_REQUEST_SIZE` adjusts the
 multipart request limit. Maximum-size performance and memory use have not been
 validated. Remote `owl:imports` are not fetched; parser resolution maps them to
 a temporary local empty document and retains the import declaration.
+Reasoning uses HermiT (OWL 2 DL); it is bounded to 100,000 axioms and 60
+seconds by default. Configure `OPENPROTEGE_REASONING_MAX_AXIOMS` and
+`OPENPROTEGE_REASONING_TIMEOUT` (for example `45s`) to tune these limits.
+Only one reasoning task runs at a time; concurrent requests receive `503`,
+oversized ontologies receive `413`, timeout receives `504`, profile failures
+receive `422`, and unknown classes receive `404`. The axiom limit applies
+after parsing, not as a parser memory/complexity limit. Cancellation and
+resource behavior for adversarial or very large ontologies remain unverified.
 
 ## Optional AI chat
 
@@ -112,7 +122,8 @@ generated changes, or project write-back.
 Integration tests start disposable PostgreSQL 17 containers and verify
 readiness, migrations, invitation acceptance/replay, session login/logout,
 CSRF, team/project authorization, ontology parsing, import/export, version
-metadata, audit outcomes, and editor/viewer access.
+metadata, audit outcomes, editor/viewer access, OWL 2 DL validation,
+consistency/unsatisfiable class reporting, and inferred class hierarchy.
 
 ```sh
 mvn -Dapi.version=1.40 -f server/pom.xml test
