@@ -58,9 +58,21 @@ public class ProjectService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found");
         }
         ProjectRole role = authenticatedUserId(actor)
-                .flatMap(userId -> projectRole(projectId, userId))
+                .flatMap(userId -> activeProjectRole(project, userId))
                 .orElse(null);
         return new ProjectView(project.id(), project.name(), project.visibility(), project.teamId(), role);
+    }
+
+    public UUID requireOntologyWriteAccess(UUID projectId, Authentication actor) {
+        UUID actorId = actorResolver.requireUserId(actor);
+        ProjectRow project = findProject(projectId);
+        ProjectRole role = activeProjectRole(project, actorId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Ontology import is not allowed"));
+        if (role != ProjectRole.OWNER && role != ProjectRole.ADMIN && role != ProjectRole.EDITOR) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ontology import is not allowed");
+        }
+        return actorId;
     }
 
     public java.util.List<ProjectView> list(Authentication actor) {
@@ -152,12 +164,16 @@ public class ProjectService {
     }
 
     private boolean isProjectMember(ProjectRow project, Authentication actor) {
-        var userId = authenticatedUserId(actor);
-        if (userId.isEmpty()) {
-            return false;
+        return authenticatedUserId(actor)
+                .flatMap(userId -> activeProjectRole(project, userId))
+                .isPresent();
+    }
+
+    private java.util.Optional<ProjectRole> activeProjectRole(ProjectRow project, UUID userId) {
+        if (project.teamId() != null && !isTeamMember(project.teamId(), userId)) {
+            return java.util.Optional.empty();
         }
-        boolean member = projectRole(project.id(), userId.get()).isPresent();
-        return member && (project.teamId() == null || isTeamMember(project.teamId(), userId.get()));
+        return projectRole(project.id(), userId);
     }
 
     private void requireProjectManager(ProjectRow project, UUID actorId) {

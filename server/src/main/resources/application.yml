@@ -8,10 +8,16 @@ spring:
   flyway:
     clean-disabled: true
     validate-on-migrate: true
+  servlet:
+    multipart:
+      max-file-size: ${OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE:500MB}
+      max-request-size: ${OPENPROTEGE_ONTOLOGY_MAX_REQUEST_SIZE:501MB}
 openprotege:
   bootstrap:
     admin-email: ${ADMIN_BOOTSTRAP_EMAIL:}
     admin-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+  ontology:
+    max-file-size: ${OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE:500MB}
 
 management:
   endpoints:
