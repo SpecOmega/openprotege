@@ -4,7 +4,7 @@ An open platform for ontology engineering, semantic knowledge modeling, and coll
 
 > **Project stage: Web workspace, backend APIs, and first ontology/AI/reasoning slices**
 >
-> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project APIs, a React web workspace, RDF/XML/Turtle ontology import/version/export, an initial HermiT OWL 2 DL profile/consistency/hierarchy reasoning slice, and an opt-in OpenAI-compatible AI chat proxy configured with server-side secrets are implemented. The desktop client, ontology editing/restore, round-trip acceptance, maximum-file resource testing, full collaboration, browser E2E testing, and Compose bridge deployment acceptance remain incomplete.
+> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project APIs, a React web workspace, RDF/XML/Turtle ontology import/version/export/history restore, an initial HermiT OWL 2 DL profile/consistency/explanation/classification and read-only SWRL reasoning slice, and an opt-in OpenAI-compatible AI chat proxy configured with server-side secrets are implemented. The desktop client, ontology entity editing, round-trip acceptance, maximum-file resource testing, full collaboration, browser E2E testing, and Compose bridge deployment acceptance remain incomplete.
 
 **Language:** [中文](README.md) | English
 
@@ -28,9 +28,9 @@ The initial source-free baseline commit, `d9caafee6858a958ea7a2944d574407a79f883
 Current scope and boundaries:
 
 - Java 21 / Spring Boot 3, PostgreSQL 17, Flyway schema, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. PostgreSQL Testcontainers tests pass for invitation replay rejection, sessions/CSRF/logout, and team/project isolation boundaries; Compose bridge networking remains blocked in the current environment.
-- The React UI includes local login/invitation acceptance, team/project listing and creation, project member settings, ontology snapshot import/version browsing/download/format conversion, and AI chat. Browser flows have not received E2E acceptance. Ontology editing/restore/deletion, the desktop client, full account recovery/brute-force protection, and production multi-instance sessions are not implemented.
+- The React UI includes local login/invitation acceptance, team/project listing and creation, project member settings, ontology snapshot import/version browsing/download/format conversion/history restore as a new immutable snapshot, and AI chat. Browser flows have not received E2E acceptance. Ontology entity editing/deletion, the desktop client, full account recovery/brute-force protection, and production multi-instance sessions are not implemented.
 - Small ontology parsing/integration samples pass; Pizza round-trip fidelity and performance/resource safety at the 500 MiB maximum remain unverified.
-- HermiT provides OWL 2 DL profile checks, ontology consistency/unsatisfiable named-class diagnosis, and inferred target-class super/subclass queries. The initial service is limited to one active worker, 100,000 axioms, and 60 seconds by default; timeout cancellation, concurrent load, large/adversarial ontology resource use, and browser E2E remain unverified.
+- HermiT provides OWL 2 DL profile/consistency checks, unsatisfiable-class and bounded global inconsistency explanations, class hierarchy and individual classification; one Manchester-syntax SWRL rule can be applied transiently without saving changes. The initial service is limited to one active worker, 100,000 axioms, and 60 seconds by default; timeout cancellation, concurrent load, large/adversarial ontology resource use, and browser E2E remain unverified.
 - AI chat can be configured for an OpenAI-compatible provider (with a DeepSeek configuration template); it is disabled by default, API keys remain server-side, and the chat neither reads ontologies nor writes projects. Semantic search and Agents are not implemented; real provider connectivity and privacy review remain outstanding.
 - The project license has not been selected; Apache-2.0 is being evaluated as a candidate.
 

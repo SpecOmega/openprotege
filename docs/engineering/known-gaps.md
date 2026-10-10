@@ -21,7 +21,7 @@
 |---|---|---|
 | 桌面端、Web 端、后端、持久化与 API | UNVERIFIED | 基于已确认技术栈建立可运行的最小端到端切片。 |
 | 项目、工作区、成员、权限、版本、审计与项目隔离 | UNVERIFIED | 建立权限模型和越权读取/写入集成测试。 |
-| OpenProtégé 本体导入、校验、保存、导出、推理和 OWL/RDF 往返保真 | PARTIAL | HermiT OWL 2 DL profile/consistency/unsatisfiable classes/target hierarchy 服务与 Web 入口已实现，基础推理单元测试通过；仍需 API 权限矩阵、超时取消、复杂/大型本体资源安全、编辑器/应用往返和更多 OWL 2 构造验证。 |
+| OpenProtégé 本体导入、校验、版本恢复、导出、推理和 OWL/RDF 往返保真 | PARTIAL | 已实现不可变快照、Owner/Admin/Editor 的历史版本新建式恢复、HermiT OWL 2 DL profile/consistency/解释/层级/个体分类和临时 SWRL 服务/Web 入口；仍需浏览器/API 完整权限验收、超时取消、复杂/大型本体资源安全、实体编辑器/应用往返和更多 OWL 2 构造验证。 |
 | 身份认证、授权、API 错误与版本策略 | UNVERIFIED | 形成安全边界和接口契约，并执行未授权/越权测试。 |
 | 外部 IRI 解析策略与 SSRF 防护 | UNVERIFIED | 定义默认拒绝/允许边界并验证网络访问行为。 |
 | XSS、敏感信息泄露、供应链风险 | UNVERIFIED | 应用存在后执行威胁建模、输入输出测试和依赖扫描。 |

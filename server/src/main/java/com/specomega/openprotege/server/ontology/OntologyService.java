@@ -145,6 +145,44 @@ public class OntologyService {
         }
     }
 
+    public VersionView restoreVersion(UUID projectId, UUID sourceVersionId, Authentication actor) {
+        UUID actorId = projectService.requireOntologyWriteAccess(projectId, actor);
+        RestoreSource source = findRestoreSource(projectId, sourceVersionId);
+        if (source.fileSize() > maximumFileSize) {
+            recordAudit(projectId, null, actorId, "RESTORE", "FAILED", source.fileName(),
+                    source.fileSize(), source.format(), "FILE_SIZE_EXCEEDED", sourceVersionId);
+            throw OntologyException.fileSizeExceeded(source.fileSize(), maximumFileSize);
+        }
+
+        UUID restoredVersionId = UUID.randomUUID();
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                int copied = jdbcTemplate.update(
+                        """
+                        INSERT INTO ontology_versions
+                            (id, project_id, format, content, ontology_iri, axiom_count, file_name, created_by)
+                        SELECT ?, project_id, format, content, ontology_iri, axiom_count, file_name, ?
+                        FROM ontology_versions
+                        WHERE project_id = ? AND id = ?
+                        """,
+                        restoredVersionId, actorId, projectId, sourceVersionId);
+                if (copied != 1) {
+                    throw OntologyException.versionNotFound();
+                }
+                recordAudit(projectId, restoredVersionId, actorId, "RESTORE", "SUCCESS", source.fileName(),
+                        source.fileSize(), source.format(), null, sourceVersionId);
+                jdbcTemplate.update("UPDATE projects SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", projectId);
+            });
+            return findVersionMetadata(projectId, restoredVersionId);
+        } catch (OntologyException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            recordAudit(projectId, null, actorId, "RESTORE", "FAILED", source.fileName(),
+                    source.fileSize(), source.format(), "STORAGE_ERROR", sourceVersionId);
+            throw OntologyException.storageFailure(exception);
+        }
+    }
+
     public VersionPage listVersions(UUID projectId, int pageNum, int pageSize, Authentication actor) {
         projectService.get(projectId, actor);
         if (pageNum < 1 || pageSize < 1 || pageSize > 100) {
@@ -212,17 +250,36 @@ public class OntologyService {
                 .stream().findFirst().orElseThrow(OntologyException::versionNotFound);
     }
 
+    private RestoreSource findRestoreSource(UUID projectId, UUID versionId) {
+        return jdbcTemplate.query(
+                        """
+                        SELECT format, file_name, octet_length(content) AS file_size
+                        FROM ontology_versions
+                        WHERE project_id = ? AND id = ?
+                        """,
+                        (rs, row) -> new RestoreSource(OntologyFormat.parse(rs.getString("format")),
+                                rs.getString("file_name"), rs.getLong("file_size")),
+                        projectId, versionId)
+                .stream().findFirst().orElseThrow(OntologyException::versionNotFound);
+    }
+
     private void recordAudit(UUID projectId, UUID versionId, UUID actorId, String action, String result,
                              String fileName, long fileSize, OntologyFormat format, String errorCode) {
+        recordAudit(projectId, versionId, actorId, action, result, fileName, fileSize, format, errorCode, null);
+    }
+
+    private void recordAudit(UUID projectId, UUID versionId, UUID actorId, String action, String result,
+                             String fileName, long fileSize, OntologyFormat format, String errorCode,
+                             UUID sourceVersionId) {
         jdbcTemplate.update(
                 """
                 INSERT INTO ontology_audit_logs
                     (id, project_id, version_id, actor_id, action, result, file_name,
-                     file_size_bytes, format, error_code)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     file_size_bytes, format, error_code, source_version_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 UUID.randomUUID(), projectId, versionId, actorId, action, result, fileName,
-                fileSize, format == null ? null : format.displayName(), errorCode);
+                fileSize, format == null ? null : format.displayName(), errorCode, sourceVersionId);
     }
 
     private UUID actorId(Authentication actor) {
@@ -254,6 +311,7 @@ public class OntologyService {
     public record VersionPage(List<VersionView> versions, int pageNum, int pageSize, long total) {}
     public record ExportFile(byte[] content, String mediaType, String fileName) {}
     public record OntologyDocument(byte[] content, OntologyFormat format, UUID versionId) {}
+    private record RestoreSource(OntologyFormat format, String fileName, long fileSize) {}
     private record StoredVersion(UUID id, UUID projectId, OntologyFormat format, byte[] content,
                                  String ontologyIri, long axiomCount, String fileName, Instant createdAt) {}
 }

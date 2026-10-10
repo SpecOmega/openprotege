@@ -103,6 +103,7 @@ function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [versions, setVersions] = useState<Version[]>([]);
+  const [restoreBusyId, setRestoreBusyId] = useState("");
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
@@ -354,6 +355,25 @@ function App() {
       URL.revokeObjectURL(anchor.href);
     } catch (reason) {
       reportError(reason);
+    }
+  }
+
+  async function restoreVersion(version: Version) {
+    if (!selectedProject || !window.confirm(
+      `Restore "${version.fileName}" as a new immutable version? Existing versions will be kept.`,
+    )) return;
+    setRestoreBusyId(version.id);
+    try {
+      await api<Version>(
+        `/api/projects/${selectedProject.id}/ontologies/versions/${version.id}/restore`,
+        { method: "POST", body: jsonBody({}) },
+      );
+      await refreshProject(selectedProject);
+      setNotice(`Restored ${version.fileName} as a new version.`);
+    } catch (reason) {
+      reportError(reason);
+    } finally {
+      setRestoreBusyId("");
     }
   }
 
@@ -680,6 +700,9 @@ function App() {
                         {version.ontologyIri && <small className="iri">{version.ontologyIri}</small>}</span>
                       <div className="version-actions"><button className="text-button" onClick={() => void exportVersion(version)}>Download</button>
                         <button className="text-button" onClick={() => void exportVersion(version, version.format === "Turtle" ? "RDF/XML" : "Turtle")}>Convert</button>
+                        {canImport && <button className="text-button" disabled={restoreBusyId !== ""} onClick={() => void restoreVersion(version)}>
+                          {restoreBusyId === version.id ? "Restoring…" : "Restore"}
+                        </button>}
                         <button className="text-button" disabled={reasoningBusy} onClick={() => void validateVersion(version)}>Start reasoner</button></div>
                     </div>
                     {reasoningVersionId === version.id && <div className="reasoning-panel">

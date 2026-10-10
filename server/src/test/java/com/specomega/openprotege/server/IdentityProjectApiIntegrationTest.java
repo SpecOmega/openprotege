@@ -290,12 +290,34 @@ class IdentityProjectApiIntegrationTest {
         assertThat(objectMapper.readTree(malformed.body()).get("errorCode").asText()).isEqualTo("PARSING_ERROR");
         assertThat(objectMapper.readTree(admin.get("/api/projects/" + projectId
                 + "/ontologies/versions").body()).get("total").asLong()).isEqualTo(1);
+        String restorePath = "/api/projects/" + projectId + "/ontologies/versions/" + versionId + "/restore";
+        assertThat(bob.post(restorePath, "{}").status()).isEqualTo(403);
+        Response restored = admin.post(restorePath, "{}");
+        assertThat(restored.status()).as(restored.body()).isEqualTo(201);
+        JsonNode restoredVersion = objectMapper.readTree(restored.body());
+        UUID restoredVersionId = UUID.fromString(restoredVersion.get("id").asText());
+        assertThat(restoredVersionId).isNotEqualTo(versionId);
+        assertThat(restoredVersion.get("fileName").asText()).isEqualTo("minimal.owl");
+        assertThat(restoredVersion.get("format").asText()).isEqualTo(importedVersion.get("format").asText());
+        assertThat(restoredVersion.get("ontologyIri").asText())
+                .isEqualTo(importedVersion.get("ontologyIri").asText());
+        assertThat(restoredVersion.get("axiomCount").asLong())
+                .isEqualTo(importedVersion.get("axiomCount").asLong());
+        Response restoredExport = admin.get("/api/projects/" + projectId + "/ontologies/versions/"
+                + restoredVersionId + "/export");
+        assertThat(restoredExport.status()).isEqualTo(200);
+        assertThat(restoredExport.body()).isEqualTo(rdfXml);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT source_version_id FROM ontology_audit_logs WHERE version_id = ? AND action = 'RESTORE'",
+                UUID.class, restoredVersionId)).isEqualTo(versionId);
+        assertThat(objectMapper.readTree(admin.get("/api/projects/" + projectId
+                + "/ontologies/versions").body()).get("total").asLong()).isEqualTo(2);
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM ontology_audit_logs WHERE project_id = ? AND action = 'IMPORT' AND result = 'FAILED'",
                 Integer.class, projectId)).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM ontology_audit_logs WHERE project_id = ? AND action = 'EXPORT' AND result = 'SUCCESS'",
-                Integer.class, projectId)).isEqualTo(2);
+                Integer.class, projectId)).isEqualTo(3);
     }
 
     private UUID userId(String email) {

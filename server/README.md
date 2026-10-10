@@ -71,6 +71,7 @@ header described above.
 | `POST /api/projects/{projectId}/ontologies/import` | Project Owner/Admin/Editor; multipart upload of RDF/XML or Turtle; creates immutable snapshot |
 | `GET /api/projects/{projectId}/ontologies/versions` | Authorized project reader; list version metadata (`pageNum`, `pageSize`) |
 | `GET /api/projects/{projectId}/ontologies/versions/{versionId}` | Authorized project reader; get version metadata |
+| `POST /api/projects/{projectId}/ontologies/versions/{versionId}/restore` | Project Owner/Admin/Editor; creates a new immutable version by copying the selected version; request body may be `{}` |
 | `GET /api/projects/{projectId}/ontologies/versions/{versionId}/export` | Authorized project reader, including anonymous public-project readers; optional `format=RDF/XML|Turtle` |
 | `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/validate` | Authorized project reader; OWL 2 DL profile, consistency and unsatisfiable named classes |
 | `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/start` | Authorized project reader; starts a bounded HermiT run and returns profile, consistency, unsatisfiable classes and explanations; body `{"engine":"HERMIT"}` |
@@ -90,6 +91,11 @@ to adjust the file limit; `OPENPROTEGE_ONTOLOGY_MAX_REQUEST_SIZE` adjusts the
 multipart request limit. Maximum-size performance and memory use have not been
 validated. Remote `owl:imports` are not fetched; parser resolution maps them to
 a temporary local empty document and retains the import declaration.
+Restoring a version never overwrites or deletes history: it copies the source
+snapshot into a new version, preserves its format and ontology metadata, and
+records both the new version and source version in the audit log. The restore
+source must belong to the same project, and the current configured file-size
+limit is enforced.
 Reasoning uses HermiT (OWL 2 DL); it is bounded to 100,000 axioms and 60
 seconds by default. Configure `OPENPROTEGE_REASONING_MAX_AXIOMS` and
 `OPENPROTEGE_REASONING_TIMEOUT` (for example `45s`) to tune these limits.

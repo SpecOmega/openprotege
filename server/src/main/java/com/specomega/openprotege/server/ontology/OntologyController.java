@@ -57,6 +57,14 @@ public class OntologyController {
         return ontologyService.getVersion(projectId, versionId, actor);
     }
 
+    @PostMapping("/versions/{versionId}/restore")
+    ResponseEntity<OntologyService.VersionView> restoreVersion(@PathVariable UUID projectId,
+                                                               @PathVariable UUID versionId,
+                                                               Authentication actor) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ontologyService.restoreVersion(projectId, versionId, actor));
+    }
+
     @GetMapping("/versions/{versionId}/export")
     ResponseEntity<ByteArrayResource> exportOntology(@PathVariable UUID projectId,
                                                       @PathVariable UUID versionId,
