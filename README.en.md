@@ -2,9 +2,9 @@
 
 An open platform for ontology engineering, semantic knowledge modeling, and collaborative governance.
 
-> **Project stage: Web backend foundation plus the first ontology file API slice**
+> **Project stage: Web workspace, backend APIs, and first ontology/AI chat slices**
 >
-> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project APIs, and an initial RDF/XML/Turtle ontology import, version metadata, and export API slice are implemented. The React UI, desktop client, ontology editing/restore, round-trip acceptance, maximum-file resource tests, full collaboration, and Compose bridge deployment acceptance remain incomplete.
+> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project APIs, a React web workspace, an initial RDF/XML/Turtle ontology import/version/export slice, and an opt-in OpenAI-compatible AI chat proxy configured with server-side secrets are implemented. The desktop client, ontology editing/restore, round-trip acceptance, maximum-file resource testing, full collaboration, browser E2E testing, and Compose bridge deployment acceptance remain incomplete.
 
 **Language:** [中文](README.md) | English
 
@@ -28,9 +28,9 @@ The initial source-free baseline commit, `d9caafee6858a958ea7a2944d574407a79f883
 Current scope and boundaries:
 
 - Java 21 / Spring Boot 3, PostgreSQL 17, Flyway schema, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. PostgreSQL Testcontainers tests pass for invitation replay rejection, sessions/CSRF/logout, and team/project isolation boundaries; Compose bridge networking remains blocked in the current environment.
-- The ontology API currently supports RDF/XML/Turtle import, project authorization, original-file version snapshots, version list/metadata, and export. Version editing/restore/deletion, the React UI, desktop client, full account recovery/brute-force protection, and production multi-instance session strategy are not implemented.
+- The React UI includes local login/invitation acceptance, team/project listing and creation, project member settings, ontology snapshot import/version browsing/download/format conversion, and AI chat. Browser flows have not received E2E acceptance. Ontology editing/restore/deletion, the desktop client, full account recovery/brute-force protection, and production multi-instance sessions are not implemented.
 - Small ontology parsing/integration samples pass; Pizza round-trip fidelity and performance/resource safety at the 500 MiB maximum remain unverified.
-- AI, semantic search, and agent capabilities are not implemented features of the current checkout.
+- AI chat can be configured for an OpenAI-compatible provider (with a DeepSeek configuration template); it is disabled by default, API keys remain server-side, and the chat neither reads ontologies nor writes projects. Semantic search and Agents are not implemented; real provider connectivity and privacy review remain outstanding.
 - The project license has not been selected; Apache-2.0 is being evaluated as a candidate.
 
 See the [engineering documentation index](docs/engineering/README.md) for the audit baseline, limitations, and unresolved validation work.
@@ -52,13 +52,20 @@ Requirements and engineering documents are primarily in Chinese. English transla
 
 ## Development, build, and tests
 
-The Web service module requires Docker Engine/Compose v2. All 5 tests (including PostgreSQL Testcontainers integration tests) passed in Java 21 / Maven 3.9.16 using Docker API `1.40`, covering the service foundation and identity/project authorization. This environment's `server/target` and default Maven cache are not writable, so validation ran against an isolated source copy and temporary Maven cache. On a writable checkout, run:
+The Web service requires Docker Engine/Compose v2; the browser client requires Node.js 22+. Build and run the frontend separately:
+
+```sh
+npm ci --prefix web
+npm --prefix web run dev
+```
+
+The Vite dev server proxies `/api` to `http://localhost:8080`. The production Compose image builds the frontend and serves it from Spring Boot on the same origin. Run backend tests (including PostgreSQL Testcontainers integration tests) with Docker API `1.40`:
 
 ```sh
 mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
 ```
 
-For a first empty database, set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`; the application has no default credentials. Ontology uploads default to 500 MiB and can be adjusted with `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE`; this limit is not evidence that maximum-size performance has passed. See the [build and test baseline](docs/engineering/03-build-and-test-baseline.md) for Compose limitations. There is no Web UI or ontology editor yet.
+For a first empty database, set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`; the application has no default credentials. Ontology uploads default to 500 MiB and can be adjusted with `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE`; this limit is not evidence that maximum-size performance has passed. Optional AI configuration: `OPENPROTEGE_AI_ENABLED=true`, `OPENPROTEGE_AI_PROVIDER=deepseek`, `OPENPROTEGE_AI_BASE_URL=https://api.deepseek.com/v1`, `OPENPROTEGE_AI_MODEL=deepseek-chat`, and `OPENPROTEGE_AI_API_KEY=<server-side secret>`. Other OpenAI-compatible services can override provider, base URL, and model. Never place the API key in browser config or commit it.
 
 ## Upstream projects and license
 

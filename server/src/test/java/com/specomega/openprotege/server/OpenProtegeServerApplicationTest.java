@@ -65,6 +65,17 @@ class OpenProtegeServerApplicationTest {
 
     @Test
     @Order(2)
+    void permitsWebEntryAndStaticAssetPaths() {
+        var indexResponse = restTemplate.getForEntity("http://localhost:" + port + "/", String.class);
+        var assetResponse = restTemplate.getForEntity(
+                "http://localhost:" + port + "/assets/not-present.js", String.class);
+
+        assertThat(indexResponse.getStatusCode().value()).isEqualTo(404);
+        assertThat(assetResponse.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    @Order(3)
     void flywayAppliesMigrationsAgainstPostgres() {
         assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1000");
         assertThat(jdbcTemplate.queryForObject(
@@ -73,7 +84,7 @@ class OpenProtegeServerApplicationTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     void readinessReportsDatabaseUnavailability() {
         POSTGRES.stop();
 

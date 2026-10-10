@@ -1,0 +1,8 @@
+.git
+.gitignore
+.env
+.local
+web/node_modules
+web/dist
+server/target
+**/.DS_Store

@@ -60,6 +60,23 @@ public class TeamService {
         auditLog.record(actorId, "TEAM_MEMBER_SET", "TEAM", teamId, targetUserId);
     }
 
+    @Transactional
+    public void addMemberByEmail(UUID teamId, String email, TeamRole requestedRole,
+                                 org.springframework.security.core.Authentication actor) {
+        UUID actorId = actorResolver.requireUserId(actor);
+        TeamRole actorRole = teamRole(teamId, actorId);
+        if (actorRole != TeamRole.OWNER && actorRole != TeamRole.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Team membership management is not allowed");
+        }
+        UUID targetUserId = jdbcTemplate.query(
+                        "SELECT id FROM users WHERE email = ?",
+                        (rs, row) -> rs.getObject("id", UUID.class),
+                        email.trim().toLowerCase(java.util.Locale.ROOT))
+                .stream().findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        addMember(teamId, targetUserId, requestedRole, actor);
+    }
+
     public java.util.List<TeamView> list(org.springframework.security.core.Authentication actor) {
         UUID userId = actorResolver.requireUserId(actor);
         return jdbcTemplate.query(

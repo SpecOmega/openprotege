@@ -18,6 +18,12 @@ openprotege:
     admin-password: ${ADMIN_BOOTSTRAP_PASSWORD:}
   ontology:
     max-file-size: ${OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE:500MB}
+  ai:
+    enabled: ${OPENPROTEGE_AI_ENABLED:false}
+    provider: ${OPENPROTEGE_AI_PROVIDER:openai-compatible}
+    base-url: ${OPENPROTEGE_AI_BASE_URL:https://api.deepseek.com/v1}
+    api-key: ${OPENPROTEGE_AI_API_KEY:}
+    model: ${OPENPROTEGE_AI_MODEL:deepseek-chat}
 
 management:
   endpoints:

@@ -125,7 +125,7 @@ class IdentityProjectApiIntegrationTest {
         UUID bobId = userId("bob@example.test");
 
         assertThat(alice.post("/api/teams/" + teamId + "/members",
-                "{\"userId\":\"" + bobId + "\",\"role\":\"MEMBER\"}").status())
+                "{\"email\":\"BOB@example.test\",\"role\":\"MEMBER\"}").status())
                 .isEqualTo(201);
         assertThat(bob.get("/api/teams/" + teamId + "/members").status()).isEqualTo(403);
         assertThat(bob.post("/api/teams/" + teamId + "/members",
@@ -160,7 +160,7 @@ class IdentityProjectApiIntegrationTest {
                 .isEqualTo(403);
 
         assertThat(alice.post("/api/projects/" + projectId + "/members",
-                "{\"userId\":\"" + bobId + "\",\"role\":\"VIEWER\"}").status())
+                "{\"email\":\"bob@example.test\",\"role\":\"VIEWER\"}").status())
                 .isEqualTo(201);
         assertThat(jdbcTemplate.queryForObject(
                 """

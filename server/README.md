@@ -1,10 +1,11 @@
 # OpenProtégé Web Server Foundation
 
-This module provides the Java 21 / Spring Boot backend foundation, initial
-identity/team/project APIs, and an initial ontology file API for RDF/XML and
-Turtle imports, immutable file versions, metadata listing, and export. The
-React UI, desktop client, ontology editing/restore/deletion, round-trip
-acceptance, and production deployment acceptance are not implemented.
+This module provides the Java 21 / Spring Boot backend, identity/team/project
+APIs, RDF/XML/Turtle ontology import/version/export, and an optional
+OpenAI-compatible AI chat proxy. The React frontend is built into the Spring
+Boot jar by the root Compose image. The desktop client, ontology editing and
+restore/deletion, round-trip acceptance, browser E2E, and production deployment
+acceptance are not complete.
 
 ## Local prerequisites
 
@@ -26,6 +27,9 @@ export ADMIN_BOOTSTRAP_EMAIL=admin@example.test
 export ADMIN_BOOTSTRAP_PASSWORD='replace-with-a-long-local-secret'
 docker compose up --build --wait
 ```
+
+The root Docker build requires npm registry access and builds the frontend
+before packaging the Spring Boot static resources.
 
 Remove the bootstrap password from the deployment environment after the first
 administrator is created. On a database with users, bootstrap values are
@@ -59,11 +63,11 @@ header described above.
 | `POST /api/admin/invitations` | Platform administrator; returns a one-time token with `Cache-Control: no-store` |
 | `POST /api/auth/invitations/accept` | Public invitation acceptance; sets the invited account password |
 | `GET, POST /api/teams` | Authenticated user's teams; create a team |
-| `POST /api/teams/{teamId}/members` | Team Owner/Admin; assign Admin/Member |
+| `POST /api/teams/{teamId}/members` | Team Owner/Admin; assign Admin/Member by existing account UUID or email |
 | `GET /api/teams/{teamId}/members` | Team Owner/Admin |
 | `GET, POST /api/projects` | Authenticated user's project memberships; create a personal or team project |
 | `GET, PUT /api/projects/{projectId}` | Read authorized metadata; Owner/Admin updates metadata |
-| `GET, POST /api/projects/{projectId}/members` | List members / set a member role; management access requires Project Owner/Admin |
+| `GET, POST /api/projects/{projectId}/members` | List members / set a member role by existing account UUID or email; management access requires Project Owner/Admin |
 | `POST /api/projects/{projectId}/ontologies/import` | Project Owner/Admin/Editor; multipart upload of RDF/XML or Turtle; creates immutable snapshot |
 | `GET /api/projects/{projectId}/ontologies/versions` | Authorized project reader; list version metadata (`pageNum`, `pageSize`) |
 | `GET /api/projects/{projectId}/ontologies/versions/{versionId}` | Authorized project reader; get version metadata |
@@ -81,6 +85,27 @@ to adjust the file limit; `OPENPROTEGE_ONTOLOGY_MAX_REQUEST_SIZE` adjusts the
 multipart request limit. Maximum-size performance and memory use have not been
 validated. Remote `owl:imports` are not fetched; parser resolution maps them to
 a temporary local empty document and retains the import declaration.
+
+## Optional AI chat
+
+AI is disabled by default. Configure the server environment (never browser
+variables) to enable an OpenAI-compatible provider:
+
+```sh
+export OPENPROTEGE_AI_ENABLED=true
+export OPENPROTEGE_AI_PROVIDER=deepseek
+export OPENPROTEGE_AI_BASE_URL=https://api.deepseek.com/v1
+export OPENPROTEGE_AI_MODEL=deepseek-chat
+export OPENPROTEGE_AI_API_KEY='<secret from your secret manager>'
+```
+
+Other providers may be used when they implement
+`POST {base-url}/chat/completions`. `GET /api/ai/status` reports only whether
+the provider is configured and its provider/model labels; it never returns a
+key. `POST /api/ai/projects/{projectId}/chat` requires an authenticated user
+with project read access. Prompts are sent to the configured external provider.
+This first slice does not include ontology context, semantic search, AI
+generated changes, or project write-back.
 
 ## Test
 

@@ -144,6 +144,20 @@ public class ProjectService {
         auditLog.record(actorId, "PROJECT_MEMBER_SET", "PROJECT", projectId, targetUserId);
     }
 
+    @Transactional
+    public void setMemberByEmail(UUID projectId, String email, ProjectRole requestedRole, Authentication actor) {
+        UUID actorId = actorResolver.requireUserId(actor);
+        ProjectRow project = findProject(projectId);
+        requireProjectManager(project, actorId);
+        UUID targetUserId = jdbcTemplate.query(
+                        "SELECT id FROM users WHERE email = ?",
+                        (rs, row) -> rs.getObject("id", UUID.class),
+                        email.trim().toLowerCase(java.util.Locale.ROOT))
+                .stream().findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        setMember(projectId, targetUserId, requestedRole, actor);
+    }
+
     public java.util.List<ProjectMemberView> listMembers(UUID projectId, Authentication actor) {
         UUID actorId = actorResolver.requireUserId(actor);
         ProjectRow project = findProject(projectId);

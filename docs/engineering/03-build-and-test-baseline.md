@@ -54,6 +54,17 @@ Stage 0 快照的仓库没有应用源码、依赖清单、构建/测试脚本�
 
 完整测试输出与限制见 [evidence-ledger.md](./evidence-ledger.md) E-38。小型测试样例通过不代表 Pizza 往返保真、500 MiB 负载性能、解析超时/复杂度、XXE/系统调用安全、版本恢复/删除或 Compose bridge 已验收。
 
+## React Web workspace 与 AI chat 切片（2026-10-10）
+
+| 检查 | 命令/执行方式 | 结果 |
+|---|---|---|
+| 锁定依赖安装与前端生产构建 | `npm ci --prefix web --no-audit --no-fund && npm --prefix web run build` | 退出码 0；TypeScript strict project build 通过，Vite 6.4.4 生成 SPA bundle。 |
+| 完整后端测试 | `mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test` | 退出码 0，`BUILD SUCCESS`；6 个测试类共 13 tests，0 failures/errors/skips。新增 AI client mock 测试覆盖 OpenAI-compatible URL、model/messages/stream、server-only Authorization header、响应解析以及关闭/无密钥时不调用 provider；现有 PostgreSQL API 测试也验证团队/项目角色可通过 email 设置；SPA 入口与静态资源路径未被权限过滤器拒绝。 |
+| 生产镜像构建 | `DB_USER=openprotege DB_PASSWORD=local-test docker compose build server` | 退出码 0。Docker 构建成功执行 Node `npm ci` / Vite build，将 `web/dist` 加入 Spring Boot static resources 后 Maven package。 |
+| Compose 与 diff | `DB_USER=openprotege DB_PASSWORD=local-test docker compose config --quiet`；`git diff --check` | 均退出码 0。 |
+
+镜像只证明多阶段构建和打包成功；未验证 Compose bridge 启动、浏览器 E2E、可访问性或真实外部模型账号。AI 默认关闭，provider 由部署环境配置，聊天请求会发往该 provider；当前不发送本体上下文，也不写回项目。密钥不得配置在浏览器端。完整结果及限制见 [evidence-ledger.md](./evidence-ledger.md) E-39。
+
 ## 固定上游 PoC 执行环境
 
 以下仅是上游项目的独立 PoC，不是 OpenProtégé 的构建或功能验证：

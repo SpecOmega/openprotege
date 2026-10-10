@@ -73,6 +73,8 @@ public class SecurityConfiguration {
                         .requestMatchers("/actuator/health/**", "/api/auth/csrf", "/api/auth/login",
                                 "/api/auth/invitations/accept")
                         .permitAll()
+                        .requestMatchers("/", "/index.html", "/assets/**", "/favicon.ico", "/robots.txt")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/projects/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/api/**").authenticated()

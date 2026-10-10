@@ -2,9 +2,9 @@ package com.specomega.openprotege.server.team;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,7 +50,15 @@ public class TeamController {
             @Valid @RequestBody AddTeamMemberRequest request,
             Authentication authentication) {
         try {
-            teamService.addMember(teamId, request.userId(), TeamService.TeamRole.valueOf(request.role()), authentication);
+            TeamService.TeamRole role = TeamService.TeamRole.valueOf(request.role());
+            if (request.userId() == null && request.email() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An account ID or email is required");
+            }
+            if (request.userId() != null) {
+                teamService.addMember(teamId, request.userId(), role, authentication);
+            } else {
+                teamService.addMemberByEmail(teamId, request.email(), role, authentication);
+            }
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported team role");
         }
@@ -59,6 +67,7 @@ public class TeamController {
 
     record CreateTeamRequest(@NotBlank @Size(max = 120) String name) {}
 
-    record AddTeamMemberRequest(@NotNull UUID userId,
+    record AddTeamMemberRequest(UUID userId,
+                                @Email @Size(max = 320) String email,
                                 @NotBlank @Pattern(regexp = "ADMIN|MEMBER") String role) {}
 }

@@ -2,9 +2,9 @@ package com.specomega.openprotege.server.project;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -69,7 +69,14 @@ public class ProjectController {
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported project role");
         }
-        projectService.setMember(projectId, request.userId(), role, authentication);
+        if (request.userId() == null && request.email() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An account ID or email is required");
+        }
+        if (request.userId() != null) {
+            projectService.setMember(projectId, request.userId(), role, authentication);
+        } else {
+            projectService.setMemberByEmail(projectId, request.email(), role, authentication);
+        }
         return org.springframework.http.ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -88,6 +95,7 @@ public class ProjectController {
     record UpdateProjectRequest(@NotBlank @Size(max = 160) String name,
                                 @NotBlank @Pattern(regexp = "PUBLIC|PRIVATE") String visibility) {}
 
-    record SetProjectMemberRequest(@NotNull UUID userId,
+    record SetProjectMemberRequest(UUID userId,
+                                   @Email @Size(max = 320) String email,
                                    @NotBlank @Pattern(regexp = "ADMIN|EDITOR|VIEWER") String role) {}
 }
