@@ -86,4 +86,4 @@ GitHub Release 查询：`gh release list --repo SpecOmega/openprotege --limit 10
 
 ## 后续实现增量复核
 
-本轮在 Stage 0 后新增 Web 服务与数据库基础文件，初始仓库检查不可再作为当前实现描述：`server/` 使用 Java 21/Spring Boot 3，依赖清单、入口、Actuator、JDBC/Flyway、Testcontainers 测试与 Dockerfile 已存在；根目录新增 PostgreSQL Compose 编排。后续首个身份/团队/项目模块及其集成测试现已实现；完整结果见 E-36。Compose bridge 下应用无法连接数据库，加入 HTTP healthcheck 后 `docker compose up --wait` 以非零结果报告失败；本体处理仍未实现。具体命令、状态与证据等级见 E-31～E-36。
+本轮在 Stage 0 后新增 Web 服务与数据库基础文件，初始仓库检查不可再作为当前实现描述：`server/` 使用 Java 21/Spring Boot 3，依赖清单、入口、Actuator、JDBC/Flyway、Testcontainers 测试与 Dockerfile 已存在；根目录新增 PostgreSQL Compose 编排。后续首个身份/团队/项目模块及其集成测试现已实现；完整结果见 E-36。当前工作树还包含 RDF/XML/Turtle 本体导入、版本快照/查询、导出和审计首个服务端切片，完整测试见 E-38。Compose bridge 下应用无法连接数据库，加入 HTTP healthcheck 后 `docker compose up --wait` 以非零结果报告失败。具体命令、状态与证据等级见 E-31～E-38。

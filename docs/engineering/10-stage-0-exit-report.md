@@ -94,7 +94,7 @@ Stage 0 报告生成时，OpenProtégé 已有中英文 README 与工程/需求�
 
 Stage 0 的“部分完成”结论保留为该阶段的历史判断，不因后续实现而追溯改写。本轮按负责人批准的技术栈新增 Web 后端与 PostgreSQL/Flyway 基础：Java 21 / Spring Boot 3.5.6、PostgreSQL 17、Testcontainers。集成测试 3/3 通过，覆盖数据库可用/不可用 readiness、SQL 查询与测试迁移；standalone host-network 服务连接 PostgreSQL 后 readiness HTTP 200。
 
-Compose 配置校验与镜像构建通过，但应用通过 Docker bridge 连接数据库在当前执行环境超时。加入服务 healthcheck 后 `docker compose up --build --wait` 以退出码 1 正确暴露启动失败；未把第一次未配置 healthcheck 时的退出码 0 误报为产品运行成功。该 bridge 互联尚需在正常 Docker 网络环境重验。工程代码/需求追踪状态、实测命令和错误边界见 [01-current-architecture.md](./01-current-architecture.md)、[03-build-and-test-baseline.md](./03-build-and-test-baseline.md)、[evidence-ledger.md](./evidence-ledger.md) E-31～E-35。用户/团队、项目、权限、本体与 Web UI 均仍未实现。
+Compose 配置校验与镜像构建通过，但应用通过 Docker bridge 连接数据库在当前执行环境超时。加入服务 healthcheck 后 `docker compose up --build --wait` 以退出码 1 正确暴露启动失败；未把第一次未配置 healthcheck 时的退出码 0 误报为产品运行成功。该 bridge 互联尚需在正常 Docker 网络环境重验。本报告保留 Stage 0 的历史退出状态，不代表后续工作树；其后身份/团队/项目模块及本体文件首个服务端切片已实现，当前工程代码/需求追踪状态、实测命令和错误边界见 [01-current-architecture.md](./01-current-architecture.md)、[03-build-and-test-baseline.md](./03-build-and-test-baseline.md)、[evidence-ledger.md](./evidence-ledger.md) E-31～E-38。
 
 ## Stage 0 后续：身份、团队与项目模块增量（2026-10-09）
 

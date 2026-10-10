@@ -2,9 +2,9 @@
 
 An open platform for ontology engineering, semantic knowledge modeling, and collaborative governance.
 
-> **Project stage: Web backend foundation plus identity/team/project APIs**
+> **Project stage: Web backend foundation plus the first ontology file API slice**
 >
-> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project metadata, and initial server-side role checks are implemented. The React UI, desktop client, ontology import/edit/versioning, full collaboration, and Compose bridge deployment acceptance remain incomplete.
+> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project APIs, and an initial RDF/XML/Turtle ontology import, version metadata, and export API slice are implemented. The React UI, desktop client, ontology editing/restore, round-trip acceptance, maximum-file resource tests, full collaboration, and Compose bridge deployment acceptance remain incomplete.
 
 **Language:** [中文](README.md) | English
 
@@ -28,8 +28,8 @@ The initial source-free baseline commit, `d9caafee6858a958ea7a2944d574407a79f883
 Current scope and boundaries:
 
 - Java 21 / Spring Boot 3, PostgreSQL 17, Flyway schema, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. PostgreSQL Testcontainers tests pass for invitation replay rejection, sessions/CSRF/logout, and team/project isolation boundaries; Compose bridge networking remains blocked in the current environment.
-- The React Web UI, desktop application, ontology upload/parsing/editing/versioning, full account recovery/brute-force protection, and production multi-instance session strategy are not implemented.
-- Ontology import, editing, validation, saving, export, and format round-trip fidelity have not been verified.
+- The ontology API currently supports RDF/XML/Turtle import, project authorization, original-file version snapshots, version list/metadata, and export. Version editing/restore/deletion, the React UI, desktop client, full account recovery/brute-force protection, and production multi-instance session strategy are not implemented.
+- Small ontology parsing/integration samples pass; Pizza round-trip fidelity and performance/resource safety at the 500 MiB maximum remain unverified.
 - AI, semantic search, and agent capabilities are not implemented features of the current checkout.
 - The project license has not been selected; Apache-2.0 is being evaluated as a candidate.
 
@@ -58,7 +58,7 @@ The Web service module requires Docker Engine/Compose v2. All 5 tests (including
 mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
 ```
 
-For a first empty database, set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`; the application has no default credentials. See the [build and test baseline](docs/engineering/03-build-and-test-baseline.md) for Compose limitations. There is no Web UI or ontology workflow yet.
+For a first empty database, set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`; the application has no default credentials. Ontology uploads default to 500 MiB and can be adjusted with `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE`; this limit is not evidence that maximum-size performance has passed. See the [build and test baseline](docs/engineering/03-build-and-test-baseline.md) for Compose limitations. There is no Web UI or ontology editor yet.
 
 ## Upstream projects and license
 

@@ -1,9 +1,10 @@
 # OpenProtégé Web Server Foundation
 
-This module provides the Java 21 / Spring Boot backend foundation and initial
-identity, team, project, and authorization APIs. The React UI, desktop client,
-ontology upload/processing/versioning, and production deployment acceptance
-are not implemented.
+This module provides the Java 21 / Spring Boot backend foundation, initial
+identity/team/project APIs, and an initial ontology file API for RDF/XML and
+Turtle imports, immutable file versions, metadata listing, and export. The
+React UI, desktop client, ontology editing/restore/deletion, round-trip
+acceptance, and production deployment acceptance are not implemented.
 
 ## Local prerequisites
 
@@ -63,6 +64,10 @@ header described above.
 | `GET, POST /api/projects` | Authenticated user's project memberships; create a personal or team project |
 | `GET, PUT /api/projects/{projectId}` | Read authorized metadata; Owner/Admin updates metadata |
 | `GET, POST /api/projects/{projectId}/members` | List members / set a member role; management access requires Project Owner/Admin |
+| `POST /api/projects/{projectId}/ontologies/import` | Project Owner/Admin/Editor; multipart upload of RDF/XML or Turtle; creates immutable snapshot |
+| `GET /api/projects/{projectId}/ontologies/versions` | Authorized project reader; list version metadata (`pageNum`, `pageSize`) |
+| `GET /api/projects/{projectId}/ontologies/versions/{versionId}` | Authorized project reader; get version metadata |
+| `GET /api/projects/{projectId}/ontologies/versions/{versionId}/export` | Authorized project reader, including anonymous public-project readers; optional `format=RDF/XML|Turtle` |
 
 Team-project membership requires current team membership and explicit project
 membership. Anonymous users may only read public projects. Private projects
@@ -71,20 +76,25 @@ The current invitation lifetime is 24 hours (an implementation default pending
 product-policy confirmation). Sessions are held by the server's in-memory
 servlet session store; a restart invalidates sessions and multi-instance
 sharing is not configured. No ontology editing endpoint exists yet.
+Ontology upload defaults to 500 MiB. Set `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE`
+to adjust the file limit; `OPENPROTEGE_ONTOLOGY_MAX_REQUEST_SIZE` adjusts the
+multipart request limit. Maximum-size performance and memory use have not been
+validated. Remote `owl:imports` are not fetched; parser resolution maps them to
+a temporary local empty document and retains the import declaration.
 
 ## Test
 
 Integration tests start disposable PostgreSQL 17 containers and verify
 readiness, migrations, invitation acceptance/replay, session login/logout,
-CSRF, and initial team/project authorization boundaries.
+CSRF, team/project authorization, ontology parsing, import/export, version
+metadata, audit outcomes, and editor/viewer access.
 
 ```sh
 mvn -Dapi.version=1.40 -f server/pom.xml test
 ```
 
-Tests require a working Docker daemon. The first identity/team/project Flyway
-migration is part of the server; ontology and file/version schemas are not
-implemented.
+Tests require a working Docker daemon. Flyway migrations create the identity,
+team/project, and ontology file-version/audit schemas.
 
 The API override is required in the current validation environment, whose
 daemon rejects Testcontainers' default API 1.32. Use a version supported by

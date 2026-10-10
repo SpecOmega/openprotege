@@ -2,9 +2,9 @@
 
 面向本体工程、语义知识建模与协作治理的开放平台。
 
-> **项目阶段：Web 后端基础与身份/团队/项目 API**
+> **项目阶段：Web 后端基础与首个本体文件 API 切片**
 >
-> 当前已实现 Spring Boot/PostgreSQL 基础、本地账号邀请/会话、团队/项目元数据及初始服务端角色授权 API。React UI、桌面端、本体文件导入/编辑/版本、完整协作功能及 Compose bridge 部署验收尚未完成。
+> 当前已实现 Spring Boot/PostgreSQL 基础、本地账号邀请/会话、团队/项目 API，以及 RDF/XML/Turtle 本体文件导入、版本元数据与导出 API 的首个服务端切片。React UI、桌面端、本体编辑/恢复、格式往返验收、最大文件资源测试、完整协作功能及 Compose bridge 部署验收尚未完成。
 
 **语言：** 中文 | [English](README.en.md)
 
@@ -28,8 +28,8 @@ OpenProtégé 的目标是支持个人与团队用户开展本体工程，并逐
 当前范围与边界：
 
 - 已添加 Java 21 / Spring Boot 3 服务、PostgreSQL 17、Flyway schema、Actuator readiness、显式首管理员引导、本地会话/CSRF、一次性邀请、团队/项目 API 与基础服务端角色校验。PostgreSQL Testcontainers 测试通过，覆盖邀请复用拒绝、会话/CSRF/logout、团队与项目隔离边界；Compose bridge 仍受当前执行环境阻塞。
-- 目前不含 React Web UI、桌面应用、本体文件上传/解析/编辑/版本、完整账户恢复/防暴力破解机制或生产级多实例会话方案。
-- 尚未验证本体导入、编辑、校验、保存、导出或格式往返保真。
+- 本体 API 当前支持 RDF/XML/Turtle 文件导入、项目授权、原始文件版本快照、版本列表/元数据和导出；版本编辑/恢复/删除、React Web UI、桌面应用、完整账户恢复/防暴力破解机制和生产级多实例会话方案未实现。
+- 本体解析有小型集成样例；Pizza 本体往返保真、500 MiB 最大尺寸下的性能与资源安全尚未验证。
 - AI、语义检索和 Agent 均不是当前已实现功能。
 - 本项目许可证尚未确定；Apache-2.0 正在作为候选方案评估。
 
@@ -58,7 +58,7 @@ Web 服务模块要求 Docker Engine/Compose v2。全部 5 项测试（含 Postg
 mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
 ```
 
-首次启动空数据库还须设置 `ADMIN_BOOTSTRAP_EMAIL` 和 `ADMIN_BOOTSTRAP_PASSWORD`，不得使用仓库默认凭证。Compose bridge 网络限制见[构建与测试基线](docs/engineering/03-build-and-test-baseline.md)。当前没有可用的 Web UI 或本体导入/编辑工作流。
+首次启动空数据库还须设置 `ADMIN_BOOTSTRAP_EMAIL` 和 `ADMIN_BOOTSTRAP_PASSWORD`，不得使用仓库默认凭证。本体上传默认上限为 500 MiB，可通过 `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE` 调整；该上限不是最大文件性能通过的证据。Compose bridge 网络限制见[构建与测试基线](docs/engineering/03-build-and-test-baseline.md)。当前没有可用的 Web UI 或本体编辑工作流。
 
 ## 上游与许可证
 

@@ -44,6 +44,16 @@ Stage 0 快照的仓库没有应用源码、依赖清单、构建/测试脚本�
 
 容器运行时 Java `21.0.12.1`、Maven `3.9.16`、Testcontainers `1.21.3`，需显式 `-Dapi.version=1.40`。完整测试输出 `/tmp/openprotege-identity-java21-test.log`，证据见 [evidence-ledger.md](./evidence-ledger.md) E-36。该结果不验证 Compose bridge、Web UI、完整角色矩阵、登录限速或多副本运行。
 
+## 本体文件 API 首个切片（2026-10-10）
+
+| 检查 | 命令/执行方式 | 结果 |
+|---|---|---|
+| 完整服务测试 | `mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test` | 退出码 0，Maven `BUILD SUCCESS`；5 个测试类共 9 tests，0 failures、0 errors、0 skipped。包括服务 readiness/迁移、身份与项目 API、本体 API 集成、管理员引导、解析器和大小限制单元测试。 |
+| 本体 API 覆盖范围 | `IdentityProjectApiIntegrationTest`、`OntologyParserTest`、`OntologyServiceTest` | 测试覆盖 RDF/XML/Turtle 导入及转换导出、版本查询、导入/导出审计、Viewer 导出与导入拒绝、远程 imports 不自动加载、超配置大小拒绝。 |
+| 工作树与追踪表检查 | `git diff --check`；Python `csv` 标准库检查 `docs/requirements/traceability-matrix.csv` | 空白检查通过；追踪表 44 行、9 列，所有记录列数一致。 |
+
+完整测试输出与限制见 [evidence-ledger.md](./evidence-ledger.md) E-38。小型测试样例通过不代表 Pizza 往返保真、500 MiB 负载性能、解析超时/复杂度、XXE/系统调用安全、版本恢复/删除或 Compose bridge 已验收。
+
 ## 固定上游 PoC 执行环境
 
 以下仅是上游项目的独立 PoC，不是 OpenProtégé 的构建或功能验证：

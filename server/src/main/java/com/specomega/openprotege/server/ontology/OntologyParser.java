@@ -92,9 +92,11 @@ final class OntologyParser {
             manager.addIRIMapper(ontologyIri -> IRI.create(blockedImportDocument.toUri()));
             OWLOntology ontology = manager.loadOntologyFromOntologyDocument(
                     new FileDocumentSource(file.toFile()), configuration);
-            if (!manager.getOntologyFormat(ontology).getClass().isAssignableFrom(format.documentFormat().getClass())
-                    && !format.documentFormat().getClass().isAssignableFrom(
-                    manager.getOntologyFormat(ontology).getClass())) {
+            String detectedFormat = manager.getOntologyFormat(ontology).getKey().toLowerCase(java.util.Locale.ROOT);
+            boolean matches = format == OntologyFormat.TURTLE
+                    ? detectedFormat.contains("turtle")
+                    : detectedFormat.contains("rdf/xml");
+            if (!matches) {
                 throw new org.semanticweb.owlapi.model.OWLOntologyCreationException(
                         "The detected ontology format does not match the requested format");
             }

@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -125,24 +124,25 @@ public class OntologyService {
                                      Authentication actor) {
         projectService.get(projectId, actor);
         StoredVersion version = findVersion(projectId, versionId);
-        OntologyFormat targetFormat = OntologyFormat.parse(requestedFormat);
-        if (targetFormat == null) {
-            targetFormat = version.format();
+        UUID actorId = actorId(actor);
+        OntologyFormat targetFormat = version.format();
+        try {
+            OntologyFormat requested = OntologyFormat.parse(requestedFormat);
+            if (requested != null) {
+                targetFormat = requested;
+            }
+            byte[] content = targetFormat == version.format()
+                    ? version.content()
+                    : ontologyParser.convert(version.content(), version.format(), targetFormat);
+            recordAudit(projectId, versionId, actorId, "EXPORT", "SUCCESS", version.fileName(),
+                    content.length, targetFormat, null);
+            return new ExportFile(content, targetFormat.mediaType(),
+                    stripExtension(version.fileName()) + targetFormat.extension());
+        } catch (OntologyException exception) {
+            recordAudit(projectId, versionId, actorId, "EXPORT", "FAILED", version.fileName(),
+                    version.content().length, targetFormat, exception.errorCode());
+            throw exception;
         }
-        byte[] content = targetFormat == version.format()
-                ? version.content()
-                : ontologyParser.convert(version.content(), version.format(), targetFormat);
-        UUID actorId = actor != null && actor.isAuthenticated()
-                && !(actor instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)
-                ? jdbcTemplate.query(
-                        "SELECT id FROM users WHERE email = ?",
-                        (rs, row) -> rs.getObject("id", UUID.class), actor.getName())
-                .stream().findFirst().orElse(null)
-                : null;
-        recordAudit(projectId, versionId, actorId, "EXPORT", "SUCCESS", version.fileName(),
-                content.length, targetFormat, null);
-        return new ExportFile(content, targetFormat.mediaType(),
-                stripExtension(version.fileName()) + targetFormat.extension());
     }
 
     public VersionPage listVersions(UUID projectId, int pageNum, int pageSize, Authentication actor) {
@@ -219,8 +219,21 @@ public class OntologyService {
                 fileSize, format == null ? null : format.displayName(), errorCode);
     }
 
+    private UUID actorId(Authentication actor) {
+        if (actor == null || !actor.isAuthenticated()
+                || actor instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            return null;
+        }
+        return jdbcTemplate.query(
+                        "SELECT id FROM users WHERE email = ?",
+                        (rs, row) -> rs.getObject("id", UUID.class), actor.getName())
+                .stream().findFirst().orElse(null);
+    }
+
     private static String safeFileName(String original) {
-        String fileName = original == null || original.isBlank() ? "ontology" : Path.of(original).getFileName().toString();
+        String normalizedPath = original == null ? "" : original.replace('\\', '/');
+        int lastSeparator = normalizedPath.lastIndexOf('/');
+        String fileName = normalizedPath.isBlank() ? "ontology" : normalizedPath.substring(lastSeparator + 1);
         String normalized = fileName.replaceAll("[\\p{Cntrl}]", "_");
         return normalized.length() <= 255 ? normalized : normalized.substring(normalized.length() - 255);
     }

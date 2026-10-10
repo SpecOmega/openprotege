@@ -2,6 +2,7 @@
 
 **版本**：0.1-draft  
 **日期**：2026-10-09  
+**实现状态（2026-10-10）**：首个服务端切片已加入 OWLAPI 5.1.20、Flyway V2、RDF/XML/Turtle 导入、版本查询与导出、项目角色授权及审计。500 MiB 为负责人确认的默认单文件上限。Pizza 往返、版本恢复/删除、最大尺寸性能和完整安全验收尚未完成。
 **关联文档**：
 - [导入/导出规格](./ontology-file-import-export-spec.md)
 - [验收标准](./ontology-file-import-export-acceptance-criteria.md)
@@ -21,10 +22,10 @@
 
 | 项目 | 优先级 | 目标交付 | 验收依据 |
 |---|---|---|---|
-| Flyway 数据库迁移 | P0 | `V2__ontology_versions_and_audit.sql` | 5 个表创建，Compose 验证 |
-| OntologyVersion、OntologyAuditLog 数据模型 | P0 | Spring Data JPA entity | 单元测试覆盖序列化/比较 |
-| OntologyService 核心服务 | P0 | 导入、导出、版本查询、权限检查 | Testcontainers 集成测试，≥ 60% 代码覆盖 |
-| OntologyController REST 端点 | P0 | POST /import、GET /export、GET /versions | API 合约测试，≥ 8 个端点测试 |
+| Flyway 数据库迁移 | P0 | `V2__ontology_versions_and_audit.sql` | PostgreSQL 集成迁移已覆盖；Compose 验证待完成 |
+| 本体版本与审计数据模型 | P0 | JDBC 持久化与响应记录 | 小型文件存取和审计已有集成测试；最大尺寸未测 |
+| OntologyService 核心服务 | P0 | 导入、导出、版本查询、权限检查 | PostgreSQL 集成测试覆盖核心切片；覆盖率门槛未测 |
+| OntologyController REST 端点 | P0 | POST /import、GET /export、GET /versions、GET /versions/{id} | 核心路径已有集成测试；完整 API 合约用例未完成 |
 | OWLAPI 5.1.20 集成 | P0 | 格式识别、解析、序列化 | Pizza 往返测试（RDF/XML ↔ Turtle） |
 | 往返保真测试 | P1 | Pizza + 3 个自构本体 | AC-FID-001 ~ AC-FID-004 全部通过 |
 | 权限与安全测试 | P1 | Viewer/Editor/Admin 矩阵、XXE 防护 | AC-SEC-PERM-001 ~ AC-SEC-XXE-002 全部通过 |
@@ -581,4 +582,3 @@ validation:
 ---
 
 **下一步**：在用户确认本计划后，立即启动 Phase 1 数据库与模型实现。
-

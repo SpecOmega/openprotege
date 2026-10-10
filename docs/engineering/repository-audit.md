@@ -87,7 +87,7 @@
 
 ## Web foundation 增量（Stage 0 之后）
 
-后续在用户确认 Java 21、Spring Boot 3、PostgreSQL/Flyway 技术基线后，新增 `server/` Maven 服务、Testcontainers 集成测试、Dockerfile 和 PostgreSQL Compose 配置；随后又实现身份/团队/项目首期 API。foundation 测试及业务 API 测试见 E-31、E-36。带应用 healthcheck 的 Compose 启动在当前 Docker bridge 网络环境以退出码 1 失败；本体处理仍未实现，具体见 [构建和测试基线](./03-build-and-test-baseline.md)。
+后续在用户确认 Java 21、Spring Boot 3、PostgreSQL/Flyway 技术基线后，新增 `server/` Maven 服务、Testcontainers 集成测试、Dockerfile 和 PostgreSQL Compose 配置；随后实现身份/团队/项目 API，以及 OWLAPI 5.1.20 支持的首个本体文件导入/版本/导出 API 切片。完整测试结果见工程证据台账 E-37 及本轮新增证据。带应用 healthcheck 的 Compose 启动在当前 Docker bridge 网络环境以退出码 1 失败；本体编辑、恢复、完整格式保真和最大文件资源验证仍待完成，具体见 [构建和测试基线](./03-build-and-test-baseline.md)。
 
 ## 许可证与开源发布风险
 

@@ -160,7 +160,7 @@ assertAnnotationsEqual(original.getAnnotations(), reimported.getAnnotations());
 ### 2.6 安全与资源限制
 
 **文件大小限制**：
-- 单文件最大 100 MB（可配置，建议上限）
+- 单文件最大 500 MB（可配置；负责人于 2026-10-10 确认首版采用该上限，配置值按二进制 MiB 解释）
 - 理由：防止 DoS；本体工程实践中，单文件通常 <10 MB
 
 **解析资源限制**：
@@ -402,7 +402,7 @@ Cache-Control: public, max-age=3600
 |---|---|---|
 | XXE 注入 | OWLAPI 5.x 默认禁用；显式检查 XML 解析器配置 | TBD 安全测试 |
 | 恶意 IRI/导入指向 | 接受相对 IRI；禁用 `file://` 协议；不自动解析远程 import | SOURCE-OBSERVED |
-| 文件炸弹 | 100 MB 大小限制 | PROPOSED |
+| 文件炸弹 | 500 MB 大小限制 | SOURCE-OBSERVED（配置）；完整资源耗尽测试仍待执行 |
 | 无限循环导入 | 不支持自动导入；用户手动；检查循环标记（后续）| TBD |
 | RDF 外部实体解析 | 使用安全的 Turtle/RDF/XML 解析器；检查 OWLAPI 文档 | TBD 安全测试 |
 
@@ -425,7 +425,7 @@ Cache-Control: public, max-age=3600
 | AC-ONT-003 | 系统导入 Turtle 本体，IRI 与注释保存 | 导入 → 导出为 Turtle → 比对公理与注释 |
 | AC-ONT-004 | 同格式往返保真：RDF/XML → 导出 → 再导入，公理集 100% 一致 | 导入 Pizza → 导出 RDF/XML → 再导入 → assertAxiomSetsEqual |
 | AC-ONT-005 | 权限检查：Viewer 不能导入；Editor 能导入；Admin 能删除版本 | 分别用 Viewer/Editor/Admin 账户测试 |
-| AC-ONT-006 | 大小限制：>100 MB 的文件返回 `FILE_SIZE_EXCEEDED` | 创建 101 MB 文件，上传，验证错误 |
+| AC-ONT-006 | 大小限制：>500 MiB 的文件返回 `FILE_SIZE_EXCEEDED` | 创建超过 500 MiB 的文件，上传，验证 HTTP 413 |
 | AC-ONT-007 | 错误定位：解析失败时返回行列号 | 上传包含语法错误的 RDF/XML，验证错误消息 |
 | AC-ONT-008 | 版本审计：所有导入/导出/删除操作记录于审计表，包括用户、时间、结果 | 导入 3 个版本，查询 ontology_audit_logs，验证 3 条记录 |
 

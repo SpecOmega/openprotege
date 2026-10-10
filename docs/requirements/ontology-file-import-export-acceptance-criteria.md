@@ -23,7 +23,7 @@
 | AC ID | 验收条件 | 测试用例 | 期望结果 | 验收方法 |
 |---|---|---|---|---|
 | AC-IMP-001 | Viewer 不能导入本体 | Viewer 用户上传 pizza.owl 至其所属项目 | 返回 HTTP 403 + `AUTHORIZATION_ERROR` | 检查错误响应 |
-| AC-IMP-002 | Editor 可导入本体 | Editor 用户上传 pizza.owl | 导入成功，创建新版本，返回 versionId | 检查 HTTP 200、versionId 非空 |
+| AC-IMP-002 | Editor 可导入本体 | Editor 用户上传 pizza.owl | 导入成功，创建新版本，返回 versionId | 检查 HTTP 201、versionId 非空 |
 | AC-IMP-003 | 非项目成员无法导入 | 用户上传至自己不属于的项目 | 返回 HTTP 404（项目不存在）或 403（无权限），不返回 500 | 实际权限实现决定具体状态码 |
 | AC-IMP-004 | 导入成功后创建新版本记录 | Editor 导入 3 个不同文件 | 数据库 ontology_versions 表行数增加 3 | 查询数据库表或 GET /api/projects/{id}/ontologies/versions 验证版本列表 |
 | AC-IMP-005 | 导入成功后记录审计日志 | Editor 导入 pizza.owl | ontology_audit_logs 表增加 1 条记录，action="IMPORT"，result="SUCCESS" | 查询审计表 |
@@ -104,8 +104,8 @@
 
 | AC ID | 验收条件 | 测试方法 | 期望结果 |
 |---|---|---|---|
-| AC-SEC-SIZE-001 | 文件大小限制 100 MB | 创建 101 MB 的有效 RDF/XML；尝试导入 | HTTP 413 + `FILE_SIZE_EXCEEDED` |
-| AC-SEC-SIZE-002 | 100 MB 以下文件接受 | 创建 99 MB 的有效 RDF/XML；导入 | 导入成功或失败于解析而非大小 |
+| AC-SEC-SIZE-001 | 文件大小限制 500 MiB | 创建超过 500 MiB 的有效 RDF/XML；尝试导入 | HTTP 413 + `FILE_SIZE_EXCEEDED` |
+| AC-SEC-SIZE-002 | 500 MiB 以下文件接受 | 创建低于 500 MiB 的有效 RDF/XML；导入 | 导入成功或失败于解析而非大小 |
 | AC-SEC-SIZE-003 | 空文件拒绝 | 上传 0 字节文件 | HTTP 400 + `PARSING_ERROR` |
 
 ### 3.2 权限与隔离
@@ -279,7 +279,7 @@ docs/engineering/verification/ontology-file-module-verification.md
 - [ ] Pizza 往返保真通过（4 个格式组合）
 - [ ] Minimal 往返保真通过（至少 3 个格式组合）
 - [ ] 权限检查覆盖 Viewer/Editor/Admin/匿名
-- [ ] 大小限制测试通过（≥ 100 MB 拒绝）
+- [ ] 大小限制测试通过（>500 MiB 拒绝；当前只有配置解析和服务层超限单元测试证据）
 - [ ] XXE 防护验证通过（无文件访问）
 - [ ] 审计日志记录完整，无敏感数据泄漏
 - [ ] API 端点响应格式与文档一致
