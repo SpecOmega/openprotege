@@ -25,10 +25,14 @@ type AiStatus = { configured: boolean; provider: string; model: string };
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type ReasoningValidation = {
   versionId: string;
+  engine: string;
   inOwl2DlProfile: boolean;
   profileViolations: string[];
   consistent: boolean | null;
   unsatisfiableClassIris: string[];
+  classExplanations: { classIri: string; axioms: string[] }[];
+  inconsistencyExplanationStatus: "NOT_APPLICABLE" | "GENERATED" | "AXIOM_LIMIT_EXCEEDED";
+  inconsistencyExplanationAxioms: string[];
   axiomCount: number;
   elapsedMillis: number;
 };
@@ -38,6 +42,19 @@ type ClassHierarchy = {
   direct: boolean;
   superClassIris: string[];
   subClassIris: string[];
+  elapsedMillis: number;
+};
+type IndividualClassification = {
+  individualIri: string;
+  consistent: boolean;
+  allTypeIris: string[];
+  inferredTypeIris: string[];
+  elapsedMillis: number;
+};
+type RuleApplication = {
+  individualIri: string;
+  consistent: boolean;
+  inferredTypeIris: string[];
   elapsedMillis: number;
 };
 
@@ -97,6 +114,11 @@ function App() {
   const [reasoningValidation, setReasoningValidation] = useState<ReasoningValidation | null>(null);
   const [classHierarchy, setClassHierarchy] = useState<ClassHierarchy | null>(null);
   const [reasoningBusy, setReasoningBusy] = useState(false);
+  const [reasoningTab, setReasoningTab] = useState<"reasoner" | "rules">("reasoner");
+  const [reasonerEngine, setReasonerEngine] = useState("HERMIT");
+  const [individualClassification, setIndividualClassification] = useState<IndividualClassification | null>(null);
+  const [ruleText, setRuleText] = useState("");
+  const [ruleApplication, setRuleApplication] = useState<RuleApplication | null>(null);
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === selectedId) ?? null,
@@ -156,6 +178,11 @@ function App() {
       setVersions([]);
       setMembers([]);
       setTeamMembers([]);
+      setReasoningVersionId("");
+      setReasoningValidation(null);
+      setClassHierarchy(null);
+      setIndividualClassification(null);
+      setRuleApplication(null);
       return;
     }
     void refreshProject(selectedProject).catch((reason: Error) => setError(reason.message));
@@ -167,6 +194,23 @@ function App() {
       setTeamMembers([]);
     }
   }, [activeTeam, refreshProject, selectedProject]);
+
+  useEffect(() => {
+    function handleReasonerShortcut(event: KeyboardEvent) {
+      const target = event.target;
+      const isEditing = target instanceof HTMLElement
+        && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      if (isEditing || !selectedProject || !(event.ctrlKey || event.metaKey)
+          || event.altKey || event.key.toLowerCase() !== "r" || versions.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      const version = versions.find((candidate) => candidate.id === reasoningVersionId) ?? versions[0];
+      void validateVersion(version);
+    }
+    window.addEventListener("keydown", handleReasonerShortcut);
+    return () => window.removeEventListener("keydown", handleReasonerShortcut);
+  }, [reasonerEngine, reasoningVersionId, selectedProject, versions]);
 
   function reportError(reason: unknown) {
     setError(reason instanceof Error ? reason.message : "The request could not be completed.");
@@ -321,8 +365,8 @@ function App() {
     setClassHierarchy(null);
     try {
       setReasoningValidation(await api<ReasoningValidation>(
-        `/api/projects/${selectedProject.id}/ontologies/versions/${version.id}/reasoning/validate`,
-        { method: "POST", body: jsonBody({}) },
+        `/api/projects/${selectedProject.id}/ontologies/versions/${version.id}/reasoning/start`,
+        { method: "POST", body: jsonBody({ engine: reasonerEngine }) },
       ));
     } catch (reason) {
       reportError(reason);
@@ -342,6 +386,50 @@ function App() {
         {
           method: "POST",
           body: jsonBody({ classIri: form.get("classIri"), direct: form.get("direct") === "true" }),
+        },
+      ));
+      setReasoningVersionId(version.id);
+    } catch (reason) {
+      reportError(reason);
+    } finally {
+      setReasoningBusy(false);
+    }
+  }
+
+  async function classifyIndividual(event: FormEvent<HTMLFormElement>, version: Version) {
+    event.preventDefault();
+    if (!selectedProject) return;
+    const form = new FormData(event.currentTarget);
+    setReasoningBusy(true);
+    setRuleApplication(null);
+    try {
+      setIndividualClassification(await api<IndividualClassification>(
+        `/api/projects/${selectedProject.id}/ontologies/versions/${version.id}/reasoning/classify`,
+        { method: "POST", body: jsonBody({ individualIri: form.get("individualIri") }) },
+      ));
+      setReasoningVersionId(version.id);
+    } catch (reason) {
+      reportError(reason);
+    } finally {
+      setReasoningBusy(false);
+    }
+  }
+
+  async function applySwrlRule(event: FormEvent<HTMLFormElement>, version: Version) {
+    event.preventDefault();
+    if (!selectedProject) return;
+    const form = new FormData(event.currentTarget);
+    setReasoningBusy(true);
+    setIndividualClassification(null);
+    try {
+      setRuleApplication(await api<RuleApplication>(
+        `/api/projects/${selectedProject.id}/ontologies/versions/${version.id}/reasoning/rules/apply`,
+        {
+          method: "POST",
+          body: jsonBody({
+            ruleText: form.get("ruleText"),
+            individualIri: form.get("individualIri"),
+          }),
         },
       ));
       setReasoningVersionId(version.id);
@@ -578,6 +666,12 @@ function App() {
                       <input name="file" type="file" accept=".owl,.rdf,.xml,.ttl,.turtle,application/rdf+xml,text/turtle" required /></label>
                     <button className="button button-primary" type="submit">Import file</button>
                   </form>}
+                  {versions.length > 0 && <div className="reasoner-toolbar">
+                    <label>Reasoner<select value={reasonerEngine} onChange={(event) => setReasonerEngine(event.target.value)}>
+                      <option value="HERMIT">HermiT</option>
+                    </select></label>
+                    <small>Start reasoner · Ctrl+R / Cmd+R</small>
+                  </div>}
                   {versions.length ? <div className="version-list">{versions.map((version) => <div className="version-entry" key={version.id}>
                     <div className="version-row">
                       <span className="file-icon">{version.format === "Turtle" ? "TTL" : "OWL"}</span>
@@ -586,10 +680,19 @@ function App() {
                         {version.ontologyIri && <small className="iri">{version.ontologyIri}</small>}</span>
                       <div className="version-actions"><button className="text-button" onClick={() => void exportVersion(version)}>Download</button>
                         <button className="text-button" onClick={() => void exportVersion(version, version.format === "Turtle" ? "RDF/XML" : "Turtle")}>Convert</button>
-                        <button className="text-button" disabled={reasoningBusy} onClick={() => void validateVersion(version)}>Validate & reason</button></div>
+                        <button className="text-button" disabled={reasoningBusy} onClick={() => void validateVersion(version)}>Start reasoner</button></div>
                     </div>
                     {reasoningVersionId === version.id && <div className="reasoning-panel">
-                      <strong>OWL 2 DL validation and reasoning</strong>
+                      <strong>{reasoningValidation ? `${reasoningValidation.engine} reasoning result` : "Reasoner starting…"}</strong>
+                      <div className="reasoning-tabs" aria-label="Reasoning tools">
+                        <button type="button" aria-pressed={reasoningTab === "reasoner"}
+                          className={reasoningTab === "reasoner" ? "reasoning-tab-active" : ""}
+                          onClick={() => setReasoningTab("reasoner")}>Reasoner</button>
+                        <button type="button" aria-pressed={reasoningTab === "rules"}
+                          className={reasoningTab === "rules" ? "reasoning-tab-active" : ""}
+                          onClick={() => setReasoningTab("rules")}>Rules</button>
+                      </div>
+                      {reasoningTab === "reasoner" && <div>
                       {reasoningValidation && <>
                         <p>{reasoningValidation.inOwl2DlProfile ? "In OWL 2 DL profile" : "Outside OWL 2 DL profile"}
                           {reasoningValidation.consistent !== null && ` · ${reasoningValidation.consistent ? "Consistent" : "Inconsistent"}`}
@@ -600,8 +703,24 @@ function App() {
                         </details>}
                         {reasoningValidation.unsatisfiableClassIris.length > 0
                           ? <details><summary>Unsatisfiable classes ({reasoningValidation.unsatisfiableClassIris.length})</summary>
-                            <ul>{reasoningValidation.unsatisfiableClassIris.map((iri) => <li key={iri}><code>{iri}</code></li>)}</ul></details>
+                            <ul>{reasoningValidation.unsatisfiableClassIris.map((iri) => {
+                              const explanation = reasoningValidation.classExplanations.find((item) => item.classIri === iri);
+                              return <li key={iri}><details><summary><code>{iri}</code></summary>
+                                {explanation?.axioms.length
+                                  ? <ul>{explanation.axioms.map((axiom, index) => <li key={index}><code>{axiom}</code></li>)}</ul>
+                                  : <small>Explanation unavailable for this class.</small>}
+                              </details></li>;
+                            })}</ul></details>
                           : reasoningValidation.consistent !== null && <p>No unsatisfiable named classes reported.</p>}
+                        {!reasoningValidation.consistent && reasoningValidation.inconsistencyExplanationAxioms.length > 0
+                          && <details><summary>Inconsistency explanation ({reasoningValidation.inconsistencyExplanationAxioms.length} axioms)</summary>
+                            <ul>{reasoningValidation.inconsistencyExplanationAxioms.map((axiom, index) => <li key={index}><code>{axiom}</code></li>)}</ul>
+                          </details>}
+                        {reasoningValidation.inconsistencyExplanationStatus === "AXIOM_LIMIT_EXCEEDED"
+                          && <p role="status">Global inconsistency explanation is unavailable because the ontology exceeds the 2,000-logical-axiom explanation limit.</p>}
+                        {reasoningValidation.inconsistencyExplanationStatus === "GENERATED"
+                          && reasoningValidation.inconsistencyExplanationAxioms.length === 0
+                          && <p role="status">No global inconsistency explanation could be generated.</p>}
                       </>}
                       <form className="hierarchy-form" onSubmit={(event) => void queryClassHierarchy(event, version)}>
                         <input name="classIri" type="text" required maxLength={2048} placeholder="Named class IRI" aria-label="Named class IRI" />
@@ -610,6 +729,21 @@ function App() {
                         </select>
                         <button className="button button-secondary" disabled={reasoningBusy} type="submit">Query hierarchy</button>
                       </form>
+                      <form className="classification-form" onSubmit={(event) => void classifyIndividual(event, version)}>
+                        <input name="individualIri" type="text" required maxLength={2048} placeholder="Named individual IRI" aria-label="Named individual IRI" />
+                        <button className="button button-secondary" disabled={reasoningBusy} type="submit">Classify individual</button>
+                      </form>
+                      {individualClassification && reasoningVersionId === version.id && <>
+                        <p>{individualClassification.consistent
+                          ? `Individual classification · ${individualClassification.elapsedMillis} ms`
+                          : "Classification unavailable: ontology is inconsistent."}</p>
+                        {individualClassification.consistent && <div className="classification-results">
+                          <strong>Inferred types</strong>
+                          {individualClassification.inferredTypeIris.length
+                            ? <ul>{individualClassification.inferredTypeIris.map((iri) => <li key={iri}><code>{iri}</code></li>)}</ul>
+                            : <small>No additional named types inferred.</small>}
+                        </div>}
+                      </>}
                       {classHierarchy && reasoningVersionId === version.id && <>
                         <p>{classHierarchy.consistent ? `Class hierarchy · ${classHierarchy.elapsedMillis} ms` : "Hierarchy unavailable: ontology is inconsistent."}</p>
                         {classHierarchy.consistent && <div className="hierarchy-results">
@@ -619,6 +753,33 @@ function App() {
                             ? <ul>{classHierarchy.subClassIris.map((iri) => <li key={iri}><code>{iri}</code></li>)}</ul> : <small>None</small>}</div>
                         </div>}
                       </>}
+                      </div>}
+                      {reasoningTab === "rules" && <div>
+                      <form className="swrl-form" onSubmit={(event) => void applySwrlRule(event, version)}>
+                        <label>Rule (Manchester SWRL syntax)
+                          <textarea name="ruleText" required maxLength={10_000} value={ruleText}
+                            onChange={(event) => setRuleText(event.target.value)}
+                            placeholder={"Rule: <http://example.org/Student>(?x) -> <http://example.org/Person>(?x)"} />
+                        </label>
+                        <div className="swrl-submit">
+                          <input name="individualIri" type="text" required maxLength={2048}
+                            placeholder="Target individual IRI" aria-label="Target individual IRI" />
+                          <button className="button button-secondary" disabled={reasoningBusy} type="submit">Apply rule</button>
+                        </div>
+                        <small>Use full entity IRIs such as <code>&lt;https://example.org/Student&gt;</code>. This result includes all inferred types for the target individual after this rule run; the saved ontology version is not changed.</small>
+                      </form>
+                      {ruleApplication && reasoningVersionId === version.id && <>
+                        <p>{ruleApplication.consistent
+                          ? `Rule inference · ${ruleApplication.elapsedMillis} ms`
+                          : "Rule result is inconsistent; no inferred types are shown."}</p>
+                        {ruleApplication.consistent && <div className="classification-results">
+                          <strong>Inferred types for <code>{ruleApplication.individualIri}</code></strong>
+                          {ruleApplication.inferredTypeIris.length
+                            ? <ul>{ruleApplication.inferredTypeIris.map((iri) => <li key={iri}><code>{iri}</code></li>)}</ul>
+                            : <small>No named types inferred.</small>}
+                        </div>}
+                      </>}
+                      </div>}
                     </div>}
                   </div>)}</div> : <div className="empty-versions"><span>⇧</span><p>No ontology snapshots yet.</p></div>}
                 </div>

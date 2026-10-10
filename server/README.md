@@ -73,7 +73,10 @@ header described above.
 | `GET /api/projects/{projectId}/ontologies/versions/{versionId}` | Authorized project reader; get version metadata |
 | `GET /api/projects/{projectId}/ontologies/versions/{versionId}/export` | Authorized project reader, including anonymous public-project readers; optional `format=RDF/XML|Turtle` |
 | `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/validate` | Authorized project reader; OWL 2 DL profile, consistency and unsatisfiable named classes |
+| `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/start` | Authorized project reader; starts a bounded HermiT run and returns profile, consistency, unsatisfiable classes and explanations; body `{"engine":"HERMIT"}` |
 | `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/hierarchy` | Authorized project reader; request `{"classIri":"https://example.org/Thing","direct":false}` for inferred super/subclasses |
+| `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/classify` | Authorized project reader; request `{"individualIri":"https://example.org/alice"}` for inferred named types |
+| `POST /api/projects/{projectId}/ontologies/versions/{versionId}/reasoning/rules/apply` | Authorized project reader; request `{"ruleText":"Rule: <https://example.org/Student>(?x) -> <https://example.org/Adult>(?x)","individualIri":"https://example.org/alice"}` for a transient SWRL rule run |
 
 Team-project membership requires current team membership and explicit project
 membership. Anonymous users may only read public projects. Private projects
@@ -90,11 +93,23 @@ a temporary local empty document and retains the import declaration.
 Reasoning uses HermiT (OWL 2 DL); it is bounded to 100,000 axioms and 60
 seconds by default. Configure `OPENPROTEGE_REASONING_MAX_AXIOMS` and
 `OPENPROTEGE_REASONING_TIMEOUT` (for example `45s`) to tune these limits.
-Only one reasoning task runs at a time; concurrent requests receive `503`,
-oversized ontologies receive `413`, timeout receives `504`, profile failures
+Only one reasoning task runs at a time with one bounded queued request; requests
+exceeding that capacity receive `503`. Oversized ontologies receive `413`,
+timeout receives `504`, profile failures
 receive `422`, and unknown classes receive `404`. The axiom limit applies
 after parsing, not as a parser memory/complexity limit. Cancellation and
 resource behavior for adversarial or very large ontologies remain unverified.
+`/start` currently accepts only `HERMIT`; Pellet and FaCT++ are not installed.
+Global inconsistency explanations use logical axioms from the version ontology
+and are attempted only up to 2,000 logical axioms. Exceeding that explanation
+limit is reported as `AXIOM_LIMIT_EXCEEDED`; it does not turn the consistency
+result into a failure. Class explanations are limited to the first 20 reported
+unsatisfiable classes and 50 axioms per explanation.
+The `rules/apply` endpoint accepts one Manchester-syntax SWRL rule per request,
+using full entity IRIs. It evaluates the rule against a temporary ontology and
+returns named types for the requested individual; this includes all inferred
+types, not only types newly produced by that rule. Rules and results are not
+persisted to the immutable version.
 
 ## Optional AI chat
 
@@ -123,7 +138,8 @@ Integration tests start disposable PostgreSQL 17 containers and verify
 readiness, migrations, invitation acceptance/replay, session login/logout,
 CSRF, team/project authorization, ontology parsing, import/export, version
 metadata, audit outcomes, editor/viewer access, OWL 2 DL validation,
-consistency/unsatisfiable class reporting, and inferred class hierarchy.
+consistency/unsatisfiable class reporting and explanations, inferred class
+hierarchy, individual classification, and transient SWRL rule application.
 
 ```sh
 mvn -Dapi.version=1.40 -f server/pom.xml test

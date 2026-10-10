@@ -6,10 +6,14 @@ final class ReasoningException extends RuntimeException {
     private final HttpStatus status;
     private final String errorCode;
 
-    private ReasoningException(HttpStatus status, String errorCode, String message) {
-        super(message);
+    private ReasoningException(HttpStatus status, String errorCode, String message, Throwable cause) {
+        super(message, cause);
         this.status = status;
         this.errorCode = errorCode;
+    }
+
+    private ReasoningException(HttpStatus status, String errorCode, String message) {
+        this(status, errorCode, message, null);
     }
 
     static ReasoningException profileRejected(int violationCount) {
@@ -17,9 +21,24 @@ final class ReasoningException extends RuntimeException {
                 "Ontology is outside the OWL 2 DL profile (" + violationCount + " profile violations).");
     }
 
+    static ReasoningException unsupportedEngine(String engine) {
+        return new ReasoningException(HttpStatus.BAD_REQUEST, "REASONER_NOT_AVAILABLE",
+                "The selected reasoner is not available: " + engine);
+    }
+
+    static ReasoningException invalidRule() {
+        return new ReasoningException(HttpStatus.UNPROCESSABLE_ENTITY, "SWRL_RULE_INVALID",
+                "The SWRL rule is invalid or cannot be applied by the configured reasoner.");
+    }
+
     static ReasoningException classNotFound(String classIri) {
         return new ReasoningException(HttpStatus.NOT_FOUND, "CLASS_NOT_FOUND",
                 "Named class was not found in the selected ontology: " + classIri);
+    }
+
+    static ReasoningException individualNotFound(String individualIri) {
+        return new ReasoningException(HttpStatus.NOT_FOUND, "INDIVIDUAL_NOT_FOUND",
+                "Named individual was not found in the selected ontology: " + individualIri);
     }
 
     static ReasoningException invalidClassIri() {
@@ -44,7 +63,7 @@ final class ReasoningException extends RuntimeException {
 
     static ReasoningException failed(Throwable cause) {
         return new ReasoningException(HttpStatus.UNPROCESSABLE_ENTITY, "REASONING_FAILED",
-                "The ontology reasoner could not complete this analysis.");
+                "The ontology reasoner could not complete this analysis.", cause);
     }
 
     HttpStatus status() {

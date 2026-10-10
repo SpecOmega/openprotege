@@ -34,8 +34,34 @@ class OntologyReasoningServiceTest {
         assertThat(result.inOwl2DlProfile()).isTrue();
         assertThat(result.consistent()).isTrue();
         assertThat(result.unsatisfiableClassIris()).contains("http://example.com/test#A");
+        assertThat(result.classExplanations()).anySatisfy(explanation -> {
+            assertThat(explanation.classIri()).isEqualTo("http://example.com/test#A");
+            assertThat(explanation.axioms()).isNotEmpty();
+        });
         assertThat(result.axiomCount()).isPositive();
         assertThat(result.elapsedMillis()).isPositive();
+    }
+
+    @Test
+    void explainsAnInconsistentOntology() {
+        OntologyReasoningService service = service(PREFIXES + """
+                :ontology a owl:Ontology .
+                :A a owl:Class ; owl:disjointWith :B .
+                :B a owl:Class .
+                :alice a owl:NamedIndividual, :A, :B .
+                """);
+
+        var result = service.validate(UUID.randomUUID(), UUID.randomUUID(), mock(Authentication.class));
+
+        assertThat(result.consistent()).isFalse();
+        assertThat(result.inconsistencyExplanationStatus()).isEqualTo("GENERATED");
+        assertThat(result.inconsistencyExplanationAxioms()).hasSize(3)
+                .anySatisfy(axiom -> assertThat(axiom)
+                        .contains("http://example.com/test#A", "http://example.com/test#alice"))
+                .anySatisfy(axiom -> assertThat(axiom)
+                        .contains("http://example.com/test#B", "http://example.com/test#alice"))
+                .anySatisfy(axiom -> assertThat(axiom)
+                        .contains("http://example.com/test#A", "http://example.com/test#B"));
     }
 
     @Test
@@ -53,6 +79,31 @@ class OntologyReasoningServiceTest {
         assertThat(result.consistent()).isTrue();
         assertThat(result.superClassIris()).contains("http://example.com/test#B");
         assertThat(result.subClassIris()).contains("http://example.com/test#C");
+    }
+
+    @Test
+    void classifiesIndividualsAndAppliesTransientSwrlRules() {
+        OntologyReasoningService service = service(PREFIXES + """
+                :ontology a owl:Ontology .
+                :Person a owl:Class .
+                :Adult a owl:Class .
+                :Student a owl:Class ; rdfs:subClassOf :Person .
+                :alice a owl:NamedIndividual, :Student .
+                """);
+        UUID projectId = UUID.randomUUID();
+        UUID versionId = UUID.randomUUID();
+        Authentication actor = mock(Authentication.class);
+        String alice = "http://example.com/test#alice";
+
+        var classification = service.classify(projectId, versionId, alice, actor);
+        var ruleResult = service.applyRule(projectId, versionId,
+                "Rule: <http://example.com/test#Student>(?x) -> <http://example.com/test#Adult>(?x)",
+                alice, actor);
+
+        assertThat(classification.allTypeIris()).contains("http://example.com/test#Person");
+        assertThat(classification.inferredTypeIris()).contains("http://example.com/test#Person");
+        assertThat(ruleResult.consistent()).isTrue();
+        assertThat(ruleResult.inferredTypeIris()).contains("http://example.com/test#Adult");
     }
 
     @Test
@@ -74,6 +125,19 @@ class OntologyReasoningServiceTest {
         assertThatThrownBy(() -> limitedService.validate(projectId, versionId, actor))
                 .isInstanceOf(ReasoningException.class)
                 .satisfies(exception -> assertThat(((ReasoningException) exception).status().value()).isEqualTo(413));
+    }
+
+    @Test
+    void rejectsUnavailableReasonerEngines() {
+        OntologyReasoningService service = service(PREFIXES + """
+                :ontology a owl:Ontology .
+                """);
+
+        assertThatThrownBy(() -> service.start(UUID.randomUUID(), UUID.randomUUID(),
+                "PELLET", mock(Authentication.class)))
+                .isInstanceOf(ReasoningException.class)
+                .satisfies(exception -> assertThat(((ReasoningException) exception).errorCode())
+                        .isEqualTo("REASONER_NOT_AVAILABLE"));
     }
 
     private static OntologyReasoningService service(String turtle) {
