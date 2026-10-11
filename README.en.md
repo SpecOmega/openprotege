@@ -66,6 +66,20 @@ The Vite dev server proxies `/api` to `http://localhost:8080`. The production Co
 mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
 ```
 
+### Production Compose deployment (local)
+
+From the repository root, create and edit the ignored environment file before starting. Set the database username/password and bootstrap administrator email/password; the administrator password must contain at least 12 characters.
+
+```sh
+cp .env.example .env
+chmod 600 .env
+# Set DB_USER, DB_PASSWORD, ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD in .env.
+docker compose up --build --wait
+curl --fail http://127.0.0.1:8080/actuator/health/readiness
+```
+
+Application and database ports bind to `127.0.0.1` by default. For external access, use a TLS-terminating reverse proxy; do not expose the container ports directly. The administrator is bootstrapped only on an empty database. After confirming the account was created, remove `ADMIN_BOOTSTRAP_PASSWORD` from `.env` and protect the database password. Administrators can issue single-use invitation tokens in the Web admin section; the service does not send email, so deliver tokens through a secure channel. `docker compose down` stops services but preserves the database volume. Do not use `down --volumes` unless deleting all persistent database data is intentional.
+
 For a first empty database, set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`; the application has no default credentials. Ontology uploads default to 500 MiB and can be adjusted with `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE`; this limit is not evidence that maximum-size performance has passed. Optional AI configuration: `OPENPROTEGE_AI_ENABLED=true`, `OPENPROTEGE_AI_PROVIDER=deepseek`, `OPENPROTEGE_AI_BASE_URL=https://api.deepseek.com/v1`, `OPENPROTEGE_AI_MODEL=deepseek-chat`, and `OPENPROTEGE_AI_API_KEY=<server-side secret>`. Other OpenAI-compatible services can override provider, base URL, and model. Never place the API key in browser config or commit it.
 
 ## Upstream projects and license

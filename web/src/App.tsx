@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type User = { id: string; email: string; platformAdmin: boolean };
 type Team = { id: string; name: string; role: "OWNER" | "ADMIN" | "MEMBER" };
@@ -60,6 +60,13 @@ type RuleApplication = {
 
 let csrfToken = "";
 
+class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function getCsrfToken() {
   if (!csrfToken) {
     const response = await fetch("/api/auth/csrf", { credentials: "same-origin" });
@@ -84,7 +91,7 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     } catch {
       // Use the HTTP status when the server did not return JSON.
     }
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
@@ -102,7 +109,10 @@ function App() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedId, setSelectedId] = useState("");
+  const [versionPageNum, setVersionPageNum] = useState(1);
   const [versions, setVersions] = useState<Version[]>([]);
+  const [versionTotal, setVersionTotal] = useState(0);
+  const projectRefreshId = useRef(0);
   const [restoreBusyId, setRestoreBusyId] = useState("");
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -141,42 +151,62 @@ function App() {
       : projectList[0]?.id ?? "");
   }, []);
 
-  const refreshProject = useCallback(async (project: Project) => {
+  const refreshProject = useCallback(async (project: Project, pageNum = versionPageNum) => {
+    const requestId = ++projectRefreshId.current;
     const page = await api<VersionPage>(
-      `/api/projects/${project.id}/ontologies/versions?pageNum=1&pageSize=50`,
+      `/api/projects/${project.id}/ontologies/versions?pageNum=${pageNum}&pageSize=50`,
     );
+    if (requestId !== projectRefreshId.current) return;
     setVersions(page.versions);
+    setVersionTotal(page.total);
     if (project.role === "OWNER" || project.role === "ADMIN") {
       const projectMembers = await api<ProjectMember[]>(`/api/projects/${project.id}/members`);
+      if (requestId !== projectRefreshId.current) return;
       setMembers(projectMembers);
     } else {
       setMembers([]);
     }
-  }, []);
+  }, [versionPageNum]);
 
   useEffect(() => {
     let mounted = true;
-    void getCsrfToken()
-      .then(() => api<User>("/api/auth/me"))
-      .then(async (currentUser) => {
+    async function openWorkspace() {
+      try {
+        await getCsrfToken();
+        const currentUser = await api<User>("/api/auth/me");
         if (!mounted) return;
         setUser(currentUser);
-        const status = await api<AiStatus>("/api/ai/status");
-        if (mounted) setAiStatus(status);
-        await refreshWorkspace();
-      })
-      .catch(() => {
-        if (mounted) setUser(null);
-      })
-      .finally(() => {
+        try {
+          setAiStatus(await api<AiStatus>("/api/ai/status"));
+        } catch (reason) {
+          if (mounted) reportError(reason);
+        }
+        try {
+          await refreshWorkspace();
+        } catch (reason) {
+          if (mounted) reportError(reason);
+        }
+      } catch (reason) {
+        if (mounted) {
+          setUser(null);
+          if (!(reason instanceof ApiError && reason.status === 401)) {
+            reportError(reason);
+          }
+        }
+      } finally {
         if (mounted) setLoading(false);
-      });
+      }
+    }
+    void openWorkspace();
     return () => { mounted = false; };
   }, [refreshWorkspace]);
 
   useEffect(() => {
     if (!selectedProject) {
+      projectRefreshId.current++;
       setVersions([]);
+      setVersionTotal(0);
+      setVersionPageNum(1);
       setMembers([]);
       setTeamMembers([]);
       setReasoningVersionId("");
@@ -186,7 +216,7 @@ function App() {
       setRuleApplication(null);
       return;
     }
-    void refreshProject(selectedProject).catch((reason: Error) => setError(reason.message));
+    void refreshProject(selectedProject, versionPageNum).catch((reason: Error) => setError(reason.message));
     if (activeTeam && (activeTeam.role === "OWNER" || activeTeam.role === "ADMIN")) {
       void api<TeamMember[]>(`/api/teams/${activeTeam.id}/members`)
         .then(setTeamMembers)
@@ -194,7 +224,7 @@ function App() {
     } else {
       setTeamMembers([]);
     }
-  }, [activeTeam, refreshProject, selectedProject]);
+  }, [activeTeam, refreshProject, selectedProject, versionPageNum]);
 
   useEffect(() => {
     function handleReasonerShortcut(event: KeyboardEvent) {
@@ -229,8 +259,13 @@ function App() {
       });
       const currentUser = await api<User>("/api/auth/me");
       setUser(currentUser);
-      setAiStatus(await api<AiStatus>("/api/ai/status"));
-      await refreshWorkspace();
+      const [statusResult, workspaceResult] = await Promise.allSettled([
+        api<AiStatus>("/api/ai/status"),
+        refreshWorkspace(),
+      ]);
+      if (statusResult.status === "fulfilled") setAiStatus(statusResult.value);
+      else reportError(statusResult.reason);
+      if (workspaceResult.status === "rejected") reportError(workspaceResult.reason);
     } catch (reason) {
       reportError(reason);
     }
@@ -329,7 +364,8 @@ function App() {
         body: form,
       });
       formElement.reset();
-      await refreshProject(selectedProject);
+      setVersionPageNum(1);
+      await refreshProject(selectedProject, 1);
       setNotice("Ontology snapshot imported.");
     } catch (reason) {
       reportError(reason);
@@ -368,7 +404,8 @@ function App() {
         `/api/projects/${selectedProject.id}/ontologies/versions/${version.id}/restore`,
         { method: "POST", body: jsonBody({}) },
       );
-      await refreshProject(selectedProject);
+      setVersionPageNum(1);
+      await refreshProject(selectedProject, 1);
       setNotice(`Restored ${version.fileName} as a new version.`);
     } catch (reason) {
       reportError(reason);
@@ -477,7 +514,7 @@ function App() {
     try {
       await api<void>(`/api/projects/${selectedProject.id}/members`, {
         method: "POST",
-        body: jsonBody({ userId: form.get("userId"), role: form.get("role") }),
+        body: jsonBody({ email: form.get("email"), role: form.get("role") }),
       });
       formElement.reset();
       await loadProjectMembers();
@@ -504,7 +541,7 @@ function App() {
     try {
       await api<void>(`/api/teams/${activeTeam.id}/members`, {
         method: "POST",
-        body: jsonBody({ userId: form.get("userId"), role: form.get("role") }),
+        body: jsonBody({ email: form.get("email"), role: form.get("role") }),
       });
       formElement.reset();
       await loadTeamMembers();
@@ -611,7 +648,7 @@ function App() {
               {projects.length ? <div className="project-list">
                 {projects.map((project) => <button key={project.id}
                   className={`project-row ${selectedId === project.id ? "project-row-selected" : ""}`}
-                  onClick={() => { setSelectedId(project.id); setChat([]); }}>
+                  onClick={() => { setSelectedId(project.id); setVersionPageNum(1); setChat([]); }}>
                   <span className="project-icon">⌘</span>
                   <span className="project-summary"><strong>{project.name}</strong>
                     <small>{project.teamId ? teams.find((team) => team.id === project.teamId)?.name ?? "Team project" : "Personal project"}</small></span>
@@ -680,7 +717,7 @@ function App() {
 
                 <div className="ontology-section">
                   <div className="subheading"><div><h3>Ontology versions</h3><p>Immutable file snapshots for this project</p></div>
-                    <span className="count-pill">{versions.length}</span></div>
+                    <span className="count-pill">{versionTotal}</span></div>
                   {canImport && <form className="upload-form" onSubmit={(event) => void uploadOntology(event)}>
                     <label className="file-picker"><span className="upload-icon">↑</span><span><strong>Import an ontology file</strong><small>RDF/XML or Turtle · up to 500 MiB configured</small></span>
                       <input name="file" type="file" accept=".owl,.rdf,.xml,.ttl,.turtle,application/rdf+xml,text/turtle" required /></label>
@@ -805,6 +842,17 @@ function App() {
                       </div>}
                     </div>}
                   </div>)}</div> : <div className="empty-versions"><span>⇧</span><p>No ontology snapshots yet.</p></div>}
+                  {versionTotal > 50 && <div className="version-pagination" aria-label="Ontology version pages">
+                    <span>Showing {((versionPageNum - 1) * 50) + 1}–{Math.min(versionPageNum * 50, versionTotal)} of {versionTotal}</span>
+                    <div>
+                      <button className="button button-secondary" type="button" disabled={versionPageNum === 1}
+                        onClick={() => setVersionPageNum((page) => Math.max(1, page - 1))}>Previous</button>
+                      <span>Page {versionPageNum} of {Math.ceil(versionTotal / 50)}</span>
+                      <button className="button button-secondary" type="button"
+                        disabled={versionPageNum >= Math.ceil(versionTotal / 50)}
+                        onClick={() => setVersionPageNum((page) => page + 1)}>Next</button>
+                    </div>
+                  </div>}
                 </div>
               </> : <div className="empty-detail"><span>⌘</span><h2>Select a project</h2><p>Choose a project from your workspace to view its versions and settings.</p></div>}
             </section>

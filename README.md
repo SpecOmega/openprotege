@@ -66,6 +66,20 @@ Vite 开发服务器将 `/api` 转发至 `http://localhost:8080`。生产 Compos
 mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
 ```
 
+### 生产 Compose 部署（本机）
+
+在仓库根目录执行以下命令，并在启动前编辑 `.env`，设置数据库用户/强密码及首管理员邮箱/强密码（管理员密码至少 12 个字符）：
+
+```sh
+cp .env.example .env
+chmod 600 .env
+# Set DB_USER, DB_PASSWORD, ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD in .env.
+docker compose up --build --wait
+curl --fail http://127.0.0.1:8080/actuator/health/readiness
+```
+
+应用和数据库端口默认只绑定到 `127.0.0.1`；外部访问应通过已配置 TLS 的反向代理，勿直接暴露容器端口。管理员账号只在空数据库首次启动时引导创建。确认管理员创建成功后，从 `.env` 删除 `ADMIN_BOOTSTRAP_PASSWORD`，并妥善保管数据库密码。管理员可在 Web 管理区签发一次性邀请令牌；服务不会发送邮件，需通过安全渠道交给受邀用户。停止服务使用 `docker compose down`，默认保留数据库卷；不要执行 `down --volumes`，除非确实要删除所有持久化数据库数据。
+
 首次启动空数据库还须设置 `ADMIN_BOOTSTRAP_EMAIL` 和 `ADMIN_BOOTSTRAP_PASSWORD`，不得使用仓库默认凭证。本体上传默认上限为 500 MiB，可通过 `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE` 调整；该上限不是最大文件性能通过的证据。推理限制可通过 `OPENPROTEGE_REASONING_MAX_AXIOMS`（默认 100000）和 `OPENPROTEGE_REASONING_TIMEOUT`（默认 `60s`）调整；axiom 上限在解析后检查，不是解析期内存限制。AI 可选配置：`OPENPROTEGE_AI_ENABLED=true`、`OPENPROTEGE_AI_PROVIDER=deepseek`、`OPENPROTEGE_AI_BASE_URL=https://api.deepseek.com/v1`、`OPENPROTEGE_AI_MODEL=deepseek-chat`、`OPENPROTEGE_AI_API_KEY=<server-side secret>`。其它 OpenAI-compatible 服务可覆盖 provider、base URL 和 model。API key 仅通过部署环境传给服务端，切勿放入 Web 配置、提交至仓库或发给客户端。Compose bridge、AI 外发数据政策和功能边界见[工程文档](docs/engineering/README.md)。
 
 ## 上游与许可证

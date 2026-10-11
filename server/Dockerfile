@@ -16,6 +16,10 @@ RUN mvn -B -ntp -DskipTests package
 
 FROM eclipse-temurin:21-jre-jammy
 
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y curl \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY --from=build /workspace/target/openprotege-server.jar ./app.jar
 USER 10001:10001

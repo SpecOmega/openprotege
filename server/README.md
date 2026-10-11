@@ -3,9 +3,9 @@
 This module provides the Java 21 / Spring Boot backend, identity/team/project
 APIs, RDF/XML/Turtle ontology import/version/export, and an optional
 OpenAI-compatible AI chat proxy. The React frontend is built into the Spring
-Boot jar by the root Compose image. The desktop client, ontology editing and
-restore/deletion, round-trip acceptance, browser E2E, and production deployment
-acceptance are not complete.
+Boot jar by the root Compose image. The desktop client, ontology entity editing/deletion, round-trip acceptance,
+browser E2E, and production deployment acceptance are not complete. Historical
+version restore is available as a new immutable snapshot.
 
 ## Local prerequisites
 
@@ -17,6 +17,11 @@ first-administrator bootstrap credentials must be supplied by the operator.
 Never commit real credentials or use development passwords for a deployment.
 Bootstrap credentials are consumed only when the database contains no users;
 there is no default administrator password.
+
+For a guided deployment from a fresh checkout, copy the root `.env.example` to
+`.env`, set its required database and bootstrap administrator values, and
+follow the Compose deployment steps in the root README. The example leaves
+credentials blank and `.env` is git-ignored.
 
 ## Start the service and database
 
@@ -43,7 +48,8 @@ Verify application readiness:
 curl --fail http://127.0.0.1:8080/actuator/health/readiness
 ```
 
-The readiness response reports only `UP` or `DOWN`; component details are not
+The runtime image includes `curl` for its Compose readiness healthcheck. The
+readiness response reports only `UP` or `DOWN`; component details are not
 exposed. Product APIs are under `/api`; public projects are readable
 anonymously, while private projects and management operations require a
 session. Obtain a CSRF token from `GET /api/auth/csrf`, send its value in
