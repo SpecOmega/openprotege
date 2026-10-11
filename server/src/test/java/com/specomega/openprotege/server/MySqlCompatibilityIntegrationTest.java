@@ -9,6 +9,7 @@ import com.specomega.openprotege.server.team.TeamService;
 import com.specomega.openprotege.server.team.TeamService.TeamRole;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -37,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers
+@EnabledIfSystemProperty(named = "openprotege.testcontainers.enabled", matches = "true")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"dev", "mysql"})
 class MySqlCompatibilityIntegrationTest {
