@@ -2,7 +2,7 @@
 
 复核日期：2026-10-11
 
-对象：初始无源码基线提交为 `d9caafee6858a958ea7a2944d574407a79f88309`；当前状态依据 Git HEAD `aa935441a32b4699a980c7de2611cc2e4a5d1cf3` 及含未提交改动的工作树复核。
+对象：初始无源码基线提交为 `d9caafee6858a958ea7a2944d574407a79f88309`；本次复核基准为 Git HEAD `9df91e479c53a9a78f83e9e2f9143f9281bddba9`，本次文档更新尚未提交。
 
 语言：中文主文档；英文翻译状态为 Pending，见 [索引](./README.md)。
 
@@ -10,13 +10,13 @@
 
 | ID | 架构面 | 当前证据 | 状态 |
 |---|---|---|---|
-| AR-01 | 应用入口与模块边界 | 新增 `server/` Java 21/Spring Boot 3.5.6 服务入口与 Maven 模块；Testcontainers 集成测试通过，Compose bridge 验收受阻。 | VERIFIED（测试范围）；BLOCKED（Compose） |
+| AR-01 | 应用入口与模块边界 | 新增 `server/` Java 21/Spring Boot 3.5.6 服务入口与 Maven 模块；Testcontainers 集成测试历史通过证据见 E-47/E-48，但当前默认 Maven 命令跳过容器测试（22 项中 9 项跳过）；Compose bridge 验收受阻。 | VERIFIED（历史集成路径）；PARTIAL（当前默认测试）；BLOCKED（Compose） |
 | AR-02 | 前端、桌面端、后端、服务进程 | React 19/TypeScript 单页工作区已可构建并打包进 Spring Boot 静态资源；桌面端尚未实现。 | VERIFIED（前端构建/容器镜像构建）；SOURCE-OBSERVED（实现范围） |
-| AR-03 | 数据库、对象存储、缓存、事件队列 | PostgreSQL 17 或 MySQL 8.4 + 独立 Flyway schema；本体文件分别以 BYTEA/LONGBLOB 保存。MySQL 8.4 Testcontainers 覆盖迁移、UUID、成员角色 upsert、HTTP readiness/登录/项目、本体导入导出/恢复及推理；对象存储/缓存/事件队列尚无。 | VERIFIED（两种数据库迁移及已列出的集成路径）；SOURCE-OBSERVED（其余） |
+| AR-03 | 数据库、对象存储、缓存、事件队列 | PostgreSQL 17 或 MySQL 8.4 + 独立 Flyway schema；本体文件分别以 BYTEA/LONGBLOB 保存。MySQL 8.4 Testcontainers 曾覆盖迁移、UUID、成员角色 upsert、HTTP readiness/登录/项目、本体导入导出/恢复及推理（E-47）；当前需显式启用容器测试才能重跑。对象存储/缓存/事件队列尚无。 | VERIFIED（历史集成路径）；UNVERIFIED（当前容器复跑）；SOURCE-OBSERVED（其余） |
 | AR-04 | 本体解析、推理、RDF/OWL/SPARQL/SHACL | OWLAPI 5.1.20 用于 RDF/XML/Turtle 导入/格式转换/导出；HermiT 提供 OWL 2 DL profile、一致性、解释、层级和分类，另有临时只读 SWRL 规则切片。中英 Turtle 场景均有 PostgreSQL HTTP API 导入/导出及 HermiT/SWRL 测试；最大尺寸性能仍未验证。 | VERIFIED（列出的服务切片）；UNVERIFIED（其余） |
 | AR-05 | 身份、授权、审计、项目隔离 | 已实现本地密码散列/会话、CSRF、一次性邀请、首管理员显式引导与初步团队/项目授权；关键路径有 PostgreSQL API 和 MySQL 数据访问集成测试，中英文场景 runner 覆盖部分完整角色业务路径。 | VERIFIED（测试覆盖路径）；PARTIAL（全矩阵/浏览器验收） |
 | AR-06 | AI、检索、Agent | 有默认关闭的 OpenAI-compatible chat UI/API；配置密钥仅服务端读取。语义检索、候选变更校验/采纳和 Agent 未实现；无真实 provider 联通证据。 | VERIFIED（mock provider 测试）；UNVERIFIED（外部服务） |
-| AR-07 | 可运行的系统架构 | Testcontainers 的 PostgreSQL 集成测试通过，standalone 服务经 PostgreSQL 返回 HTTP 200 readiness；Compose healthcheck 会检测到本环境 bridge 连接故障并返回失败。 | VERIFIED（隔离测试/standalone 范围）；BLOCKED（Compose bridge） |
+| AR-07 | 可运行的系统架构 | Testcontainers 的 PostgreSQL 集成测试有历史通过证据；standalone 服务经 PostgreSQL 返回 HTTP 200 readiness；Compose healthcheck 会检测到本环境 bridge 连接故障并返回失败。当前默认 Maven 执行跳过容器测试，启用后的复跑受 Docker API 兼容性阻塞。 | VERIFIED（历史隔离测试/standalone 范围）；BLOCKED（当前容器复跑及 Compose bridge） |
 | AR-08 | 本地开发运行 | `dev` profiles 直接连接配置的本机 PostgreSQL/MySQL；Maven 可启动后端，Vite 可启动前端，VS Code F5 配置会启动两者。当前环境没有本机数据库服务，原生数据库无容器端到端仍待验证。 | SOURCE-OBSERVED（配置/入口）；UNVERIFIED（本机数据库实跑） |
 
 README 中的产品定位不能证明任何运行功能。具体模块盘点见 [02-module-inventory.md](./02-module-inventory.md)；目标能力状态见 [04-product-capability-matrix.md](./04-product-capability-matrix.md)。

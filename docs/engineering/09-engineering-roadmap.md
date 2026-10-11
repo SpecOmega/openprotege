@@ -7,7 +7,7 @@
 ## 当前工程基线
 
 - **已有代码切片**：Spring Boot/React Web、PostgreSQL 17/MySQL 8.4 持久层、dev/prod profile、本地登录/邀请、团队/项目角色、RDF/XML/Turtle 文件版本、HermiT 和临时 SWRL API/Web 面板。
-- **已有可重现证据**：PostgreSQL/MySQL Testcontainers；身份/项目权限 API 测试；两份中英 Turtle fixtures 的 HTTP 导入/导出、HermiT 分类和 SWRL API 测试；可运行的双语 API 场景脚本。Testcontainers 不等同于本机原生数据库运行或 Compose 整栈部署；Python runner 和浏览器 E2E 当前环境未完整验收。
+- **已有可重现证据**：PostgreSQL/MySQL Testcontainers 历史执行记录见 E-47/E-48；身份/项目权限 API 测试；两份中英 Turtle fixtures 的 HTTP 导入/导出、HermiT 分类和 SWRL API 测试；可运行的双语 API 场景脚本。当前默认 Maven 测试运行中 22 项有 13 项通过、9 项容器集成测试跳过；显式启用参数为 `-Dopenprotege.testcontainers.enabled=true`。Testcontainers 不等同于本机原生数据库运行或 Compose 整栈部署；Python runner 和浏览器 E2E 当前环境未完整验收。
 - **本机开发路径**：本机 PostgreSQL/MySQL + 后端 Maven + Vite，不依赖容器；现有检查环境没有本机数据库服务，因此 AC-21/22 的 host-native 运行仍是待完成验收。
 - **产品缺口**：桌面端、实体级本体编辑、经批准的格式语义保真、生产级安全/性能边界、完整浏览器测试、AI 结构化建议/语义检索和实时协作仍未完成。
 
@@ -17,7 +17,7 @@
 2. **双语业务脚本**：在可丢弃的两种原生数据库上运行[中文场景](../guides/examples/business-scenario-zh.md)和[英文场景](../guides/examples/business-scenario-en.md)，保留 PASS/FAIL、版本及失败日志。脚本会写入记录、不会自动清库。
 3. **Compose 整栈**：在标准 Docker 主机分别验收 PostgreSQL、MySQL Compose 的 server→database 网络、健康检查、关键业务 API 和重启持久性；将环境连接超时与产品故障分开记录。
 4. **浏览器 E2E**：通过浏览器实现角色矩阵、文件导入/导出/恢复和 Reasoner/Rules 用户路径；API 集成成功不得替代 UI 验收。
-5. **CI 入口**：项目当前未提供 `.github/workflows`；建立前端 build、Maven/testcontainers、迁移及容器构建的持续验证，并要求测试报告归档。
+5. **CI 入口**：项目当前未提供 `.github/workflows`；建立前端 build、默认 Maven 测试、显式启用的 Maven/Testcontainers、迁移及容器构建的持续验证，并要求测试报告归档。Testcontainers job 必须在兼容 Docker API 的 runner 中执行，不能把默认跳过结果视为集成通过。
 
 **阶段出口**：AC-21/22 从 `PARTIAL` 更新需有无容器真实数据库与完整场景输出；Compose 与浏览器项需各自保留独立环境证据。
 

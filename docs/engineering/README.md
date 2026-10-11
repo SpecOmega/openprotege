@@ -2,7 +2,7 @@
 
 审计基准日期 / Audit baseline date: 2026-10-09
 
-当前复核时 Git HEAD / Git HEAD at current review: `aa935441a32b4699a980c7de2611cc2e4a5d1cf3`（当前工作树还含未提交改动 / worktree also contains uncommitted changes）
+本次文档复核基准 Git HEAD / Git HEAD at this documentation review: `9df91e479c53a9a78f83e9e2f9143f9281bddba9`（本次文档更新尚未提交 / documentation updates from this review are uncommitted）
 
 初始无源码基线 / Initial no-source baseline: `d9caafee6858a958ea7a2944d574407a79f88309`
 
@@ -48,6 +48,8 @@ Pending means that an English translation has not been prepared or independently
 | [Traceability matrix](../requirements/traceability-matrix.csv) | 需求到验收的追踪 / Requirements-to-acceptance mapping | Machine-oriented English fields; normative Chinese wording is in the SRS. English documentation translation is Pending. |
 
 The baseline records product decisions confirmed by the owner separately from technical decisions awaiting upstream source/runtime validation and unresolved product details. These documents do not imply implementation or test completion.
+
+本次复核执行的 Maven 默认测试命令不会自动运行 Testcontainers 集成测试；这些集成测试须显式启用 `-Dopenprotege.testcontainers.enabled=true`。当前默认测试结果为 22 项、13 项通过、9 项跳过。详情及命令见[构建与测试基线](./03-build-and-test-baseline.md)和[已知缺口](./known-gaps.md)。
 
 ## Audit evidence / 审计证据
 

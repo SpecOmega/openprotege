@@ -27,7 +27,7 @@ The initial source-free baseline commit, `d9caafee6858a958ea7a2944d574407a79f883
 
 Current scope and boundaries:
 
-- Java 21 / Spring Boot 3, selectable PostgreSQL 17/MySQL 8.4 Flyway schemas, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. PostgreSQL and MySQL Testcontainers suites pass; Compose bridge networking remains blocked in the current environment.
+- Java 21 / Spring Boot 3, selectable PostgreSQL 17/MySQL 8.4 Flyway schemas, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. Historical PostgreSQL and MySQL Testcontainers passes are recorded in engineering evidence E-47/E-48; the current default `mvn test` skips all three container integration test classes. Compose bridge networking remains blocked in the current environment.
 - The React UI includes local login/invitation acceptance, team/project listing and creation, project member settings, ontology snapshot import/version browsing/download/format conversion/history restore as a new immutable snapshot, and AI chat. Browser flows have not received E2E acceptance. Ontology entity editing/deletion, the desktop client, full account recovery/brute-force protection, and production multi-instance sessions are not implemented.
 - Small ontology parsing/integration samples pass; Pizza round-trip fidelity and performance/resource safety at the 500 MiB maximum remain unverified.
 - HermiT provides OWL 2 DL profile/consistency checks, unsatisfiable-class and bounded global inconsistency explanations, class hierarchy and individual classification; one Manchester-syntax SWRL rule can be applied transiently without saving changes. The initial service is limited to one active worker, 100,000 axioms, and 60 seconds by default; timeout cancellation, concurrent load, large/adversarial ontology resource use, and browser E2E remain unverified.
@@ -145,11 +145,13 @@ PostgreSQL-to-MySQL migration tool. Back up existing data and verify
 `DB_VOLUME` points to the dedicated target volume before running
 `docker compose up --build --wait`.
 
-Run backend tests (including PostgreSQL Testcontainers integration tests) with Docker API `1.40`:
+The default Maven test run executes non-container tests and skips Testcontainers integration tests. One current default run discovered 22 tests: 13 passed and 9 were skipped. This does not verify local or container database integration. Explicitly enable the PostgreSQL/MySQL Testcontainers suites with Docker API `1.40`:
 
 ```sh
-mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
+mvn -B -ntp -Dopenprotege.testcontainers.enabled=true -Dapi.version=1.40 -f server/pom.xml test
 ```
+
+The current validation environment reported a Docker daemon minimum API of 1.40 while default client negotiation selected 1.32, so the enabled container suites could not be re-run there. See the [build and test baseline](docs/engineering/03-build-and-test-baseline.md).
 
 ### Production Compose deployment (local)
 

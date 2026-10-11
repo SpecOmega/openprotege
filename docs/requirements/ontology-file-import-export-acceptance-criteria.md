@@ -4,6 +4,8 @@
 **日期**：2026-10-09  
 **关联规格**：[导入/导出规格](./ontology-file-import-export-spec.md)、[ADR-0003](../architecture/adr/0003-ontology-file-management.md)
 
+> 本文是待评审的验收条件草案，不是已执行的测试报告。当前实现状态以[总体验收标准](./acceptance-criteria.md)、[追踪矩阵](./traceability-matrix.csv)、[证据台账](../engineering/evidence-ledger.md)及[已知缺口](../engineering/known-gaps.md)为准。表中未带执行证据的期望值、HTTP 状态和测试样例均不得表述为已通过。
+
 ---
 
 ## 1. 功能验收标准

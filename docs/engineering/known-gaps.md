@@ -11,7 +11,7 @@
 - 本地会话/CSRF、关闭自助注册、显式 bootstrap 管理员、一次性管理员邀请、Team/Project 角色和服务端授权。
 - Web 本体文件 API：RDF/XML/Turtle 导入、不可变快照、历史分页、导出/格式转换、恢复为新快照和审计。
 - HermiT OWL 2 DL profile/一致性/解释/类层级/个体分类及单条临时 SWRL 推理预览。
-- PostgreSQL/MySQL Testcontainers 验收以及中文/英文 Turtle 业务 fixture。双语 fixture 在 PostgreSQL HTTP 集成测试中执行导入/导出、HermiT 分类和 SWRL 推理；身份/团队/项目权限则由 API 集成测试覆盖。
+- PostgreSQL/MySQL Testcontainers 集成路径及中文/英文 Turtle 业务 fixture 有历史通过证据（E-47/E-48）。当前默认 Maven 命令会跳过三组 Testcontainers 测试；只有显式设置 `-Dopenprotege.testcontainers.enabled=true` 才运行。本次默认执行 22 项中 13 项通过、9 项跳过，不可将默认命令描述为完整集成套件通过。
 - 完整 dev 和自托管配置说明见[开发与部署指南](../guides/development-and-deployment.md)。可执行业务案例：[中文](../guides/examples/business-scenario-zh.md)、[English](../guides/examples/business-scenario-en.md)。
 
 上述内容不是完整产品验收：测试容器成功不证明本机原生数据库、浏览器、生产 Compose、资源上限或备份恢复已经通过。
@@ -20,6 +20,7 @@
 
 | 缺口 | 当前状态 | 详细完成要求 |
 |---|---|---|
+| 当前环境重跑 Testcontainers 集成测试 | BLOCKED：当前默认 `mvn test` 运行 22 项、13 项通过、9 项跳过；容器测试类由 `openprotege.testcontainers.enabled=true` 显式开启。当前环境的 Docker daemon 要求 API 至少 1.40，而客户端默认协商 API 1.32 | 在兼容 Docker daemon 的 CI/开发主机执行 `mvn -B -ntp -Dopenprotege.testcontainers.enabled=true -Dapi.version=1.40 -f server/pom.xml test`；归档环境版本和完整结果。默认跳过只适合无 Docker 单元/非容器检查，不能作为数据库集成验收。 |
 | 无容器原生 dev 验收（AC-21） | BLOCKED：当前检查环境没有本机 PostgreSQL/MySQL 服务；已有 PostgreSQL/MySQL 容器测试不能替代本机服务 | 在无 Docker daemon 主机上分别安装 PostgreSQL 17 与 MySQL 8.4；从空数据库启动 dev profile，验证 Flyway/readiness、bootstrap 登录、邀请、团队/项目角色、本体导入/导出/恢复与推理；同时启动 Vite 并验证浏览器流程。保存 OS/JDK/DB/Node 版本、命令、退出码和日志。 |
 | 双语场景 runner 原生执行（AC-22） | PARTIAL：Python 脚本已实现且语法检查通过；本机数据库链路未运行 | 以一次性或可丢弃开发库分别运行[中文场景](../guides/examples/business-scenario-zh.md)和[英文场景](../guides/examples/business-scenario-en.md)，确认输出 `PASS` 和权限负向断言。脚本会新增记录，不会清理；不可连接生产库。 |
 | PostgreSQL/MySQL Compose 整栈 | BLOCKED/UNVERIFIED：当前环境曾出现 Compose server 与数据库间连接超时；MySQL Compose 整栈未取得可靠验收 | 在标准 Docker 主机从空卷分别执行 PostgreSQL、MySQL `docker compose up --build --wait`；验证 app→DB host/port、readiness、登录、关键 API、重启后持久性、日志无密钥泄露。每个数据库使用独立卷。 |

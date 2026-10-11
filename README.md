@@ -27,7 +27,7 @@ OpenProtégé 的目标是支持个人与团队用户开展本体工程，并逐
 
 当前范围与边界：
 
-- 已添加 Java 21 / Spring Boot 3 服务、PostgreSQL 17/MySQL 8.4 可选后端、独立 Flyway migration、Actuator readiness、显式首管理员引导、本地会话/CSRF、一次性邀请、团队/项目 API 与基础服务端角色校验。PostgreSQL 与 MySQL Testcontainers 集成测试通过；Compose bridge 在当前执行环境中仍不能完成端到端运行验收。
+- 已添加 Java 21 / Spring Boot 3 服务、PostgreSQL 17/MySQL 8.4 可选后端、独立 Flyway migration、Actuator readiness、显式首管理员引导、本地会话/CSRF、一次性邀请、团队/项目 API 与基础服务端角色校验。PostgreSQL 与 MySQL Testcontainers 集成路径有历史通过记录（见工程证据 E-47/E-48）；当前默认 `mvn test` 会跳过这三组容器集成测试，Compose bridge 在当前执行环境中仍不能完成端到端运行验收。
 - Web UI 已包含本地登录/邀请接受、团队/项目列表与创建、项目成员设置、本体快照导入/版本浏览/文件下载/格式转换和将历史版本恢复为新快照，以及 AI chat。恢复和导入仅能由 Owner/Admin/Editor 执行，不覆盖旧版本。具体浏览器流程尚未做 E2E 验收；本体实体编辑/版本删除、桌面应用、完整账户恢复/防暴力破解机制和生产级多实例会话方案未实现。
 - 本体解析有小型集成样例；Pizza 本体往返保真、500 MiB 最大尺寸下的性能与资源安全尚未验证。
 - 推理首版使用 HermiT 提供 OWL 2 DL profile/一致性检查、不可满足类与全局不一致解释、目标类层级查询、个体自动分类和单次只读 SWRL 规则应用；Web 提供 HermiT 启动、Ctrl+R/Cmd+R 快捷键及 Reasoner/Rules 面板。服务端单 worker、100,000 公理和 60 秒默认上限；全局冲突解释最多检查 2,000 个逻辑公理。功能单元测试覆盖有效 profile、冲突解释、个体分类和 SWRL 推断；超时取消、并发压力、大型/恶意本体资源消耗及浏览器 E2E 未验收。
@@ -64,6 +64,14 @@ OpenProtégé 的目标是支持个人与团队用户开展本体工程，并逐
 npm ci --prefix web
 npm --prefix web run dev
 ```
+
+默认 Maven 测试命令运行非容器测试；Testcontainers 的 PostgreSQL/MySQL 集成测试默认跳过。当前记录的一次默认测试执行发现 22 项，其中 13 项通过、9 项跳过，不能据此宣称本机数据库或容器数据库集成通过。启用容器集成测试需显式设置：
+
+```sh
+mvn -B -ntp -Dopenprotege.testcontainers.enabled=true -Dapi.version=1.40 -f server/pom.xml test
+```
+
+此命令要求 Docker daemon 与 Testcontainers 兼容；当前检查环境曾报告 daemon 最低 API 为 1.40，而默认协商到 API 1.32，故容器集成测试未能在该环境复验。相关状态与限制见[构建/测试基线](docs/engineering/03-build-and-test-baseline.md)。
 
 ### 本地开发与调试
 
@@ -103,7 +111,7 @@ MYSQL_ROOT_PASSWORD=<独立的强 root 密码>
 Maven 服务端测试（含 PostgreSQL Testcontainers 集成测试）使用 Docker API `1.40`：
 
 ```sh
-mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
+mvn -B -ntp -Dopenprotege.testcontainers.enabled=true -Dapi.version=1.40 -f server/pom.xml test
 ```
 
 ### 生产 Compose 部署（本机）

@@ -8,9 +8,9 @@ Stage 0 无源码基线 HEAD：`725e9d21bd36d973211e65e67d248ef4a562f10c`；下�
 
 ## OpenProtégé 当前依赖
 
-当前工作树新增 `server/pom.xml`，使用 Spring Boot `3.5.6`、Java release `21`、Spring Web/Actuator/JDBC、Flyway/PostgreSQL 驱动，以及 Spring Boot 管理的 Testcontainers 测试依赖；本地依赖树检查解析出 Testcontainers `1.21.3`、docker-java `3.4.2`。根 `compose.yaml` 使用 `postgres:17-alpine`；独立 OWLAPI `4.5.29` PoC 仍不被应用引用。尚无锁文件、上游源码拷贝或业务组件。（SOURCE-OBSERVED；Maven 测试和 Compose config 各自有运行证据）
+当前工作树新增 `server/pom.xml`，使用 Spring Boot `3.5.6`、Java release `21`、Spring Web/Actuator/JDBC、Flyway/PostgreSQL 驱动，以及 Spring Boot 管理的 Testcontainers 测试依赖；本地依赖树检查解析出 Testcontainers `1.21.3`、docker-java `3.4.2`。根 `compose.yaml` 使用 `postgres:17-alpine`；独立 OWLAPI `4.5.29` PoC 仍不被应用引用。未观察到锁文件或上游源码拷贝。（SOURCE-OBSERVED；Maven 测试和 Compose config 各自有运行证据）
 
-应用依赖已可解析且 Web backend Maven 集成测试通过，但完整传递依赖许可证清单及漏洞状态仍 `UNVERIFIED`；Compose 部署网络也未通过当前环境验收。两个上游已分别按固定 SHA 完整克隆，其中 Desktop 的构建通过、WebProtégé 构建情况见下表和 [upstream-audit.md](./upstream-audit.md)；上游构建不构成 OpenProtégé 已集成的证据。
+OpenProtégé 的 PostgreSQL/MySQL Testcontainers 集成路径有历史通过记录（E-47/E-48），但当前默认 Maven 测试会跳过这些测试类；需显式设置 `-Dopenprotege.testcontainers.enabled=true`，且本环境 Docker API 兼容问题阻止复跑。当前默认测试与前端 build 范围见[最新构建基线](./03-build-and-test-baseline.md)。完整传递依赖许可证清单及漏洞状态仍 `UNVERIFIED`；Compose 部署网络也未通过当前环境验收。两个上游已分别按固定 SHA 完整克隆，其中 Desktop 的构建通过、WebProtégé 构建情况见下表和 [upstream-audit.md](./upstream-audit.md)；上游构建不构成 OpenProtégé 已集成的证据。
 
 ## 上游固定提交
 

@@ -2,7 +2,7 @@
 
 **版本**：0.1-draft  
 **日期**：2026-10-09  
-**实现状态（2026-10-10）**：首个服务端切片已加入 OWLAPI 5.1.20、Flyway V2、RDF/XML/Turtle 导入、版本查询与导出、项目角色授权及审计。500 MiB 为负责人确认的默认单文件上限。Pizza 往返、版本恢复/删除、最大尺寸性能和完整安全验收尚未完成。
+**实现状态（2026-10-11）**：当前已实现 OWLAPI 5.1.20、RDF/XML/Turtle 导入、不可变快照、版本查询/导出、格式转换、历史版本恢复为新快照、部分项目角色授权与审计。PostgreSQL/MySQL Testcontainers 路径有历史通过证据，但这些测试需显式设置 `-Dopenprotege.testcontainers.enabled=true`；默认 Maven 测试会跳过容器测试。500 MiB 为配置的默认单文件上限，不代表最大尺寸性能已验收。Pizza 应用集成往返、版本删除、最大尺寸性能和完整安全验收尚未完成。
 **关联文档**：
 - [导入/导出规格](./ontology-file-import-export-spec.md)
 - [验收标准](./ontology-file-import-export-acceptance-criteria.md)

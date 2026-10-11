@@ -305,11 +305,19 @@ build 会执行 TypeScript 项目构建和 Vite production build；生成物在 
 
 ### 8.2 后端测试
 
+默认命令运行非容器测试；Testcontainers 数据库集成测试默认跳过。当前工作树记录的一次默认执行发现 22 项，13 项通过、9 项跳过，因此该命令不证明 PostgreSQL/MySQL 集成测试或本机原生数据库验收通过。
+
 ```sh
-mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
+mvn -B -ntp -f server/pom.xml test
 ```
 
-测试包含 Testcontainers 数据库集成测试，**需要 Docker Engine/Compose 可用**；这只影响测试基础设施，不影响前述无容器 `dev` 方式运行应用。测试会启动隔离数据库容器，不应将生产数据库或包含真实数据的容器交给测试。
+显式启用 PostgreSQL/MySQL Testcontainers 测试时使用：
+
+```sh
+mvn -B -ntp -Dopenprotege.testcontainers.enabled=true -Dapi.version=1.40 -f server/pom.xml test
+```
+
+启用后要求 Docker daemon 可被 Testcontainers 访问，并且 API 版本兼容；集成测试启动隔离数据库容器。不要将生产数据库或包含真实数据的容器交给测试。当前验证环境曾因客户端协商 Docker API 1.32、而 daemon 要求至少 1.40，无法复跑启用后的容器测试；该问题不影响应用的 host-native `dev` 运行，但本机数据库运行仍需单独验收。
 
 ### 8.3 生产镜像构建
 

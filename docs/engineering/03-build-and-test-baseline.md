@@ -160,3 +160,15 @@ docker run --rm --network host \
 - MongoDB 测试依赖来自上游 Compose 声明的 `mongo:4.1-bionic`；容器使用临时文件系统，没有挂载宿主项目数据。
 - 未运行 Web 服务或 Desktop GUI，未执行编辑器级往返、跨客户端交换、权限攻击、安全扫描或全传递依赖许可证检查；上述 OWLAPI 单样例 PoC 不覆盖这些流程。
 - 本表中所有“未执行”与“执行失败”均分开记录。任何上游成功结果都不能计作 OpenProtégé 当前功能。
+
+## 当前 OpenProtégé 工作树验证（2026-10-11）
+
+此节是当前工作树的一次实际验证记录，与上面的历史 Stage 0 / 上游 PoC 记录分开。记录基准为 Git HEAD `9df91e479c53a9a78f83e9e2f9143f9281bddba9`。
+
+| 检查 | 命令 / 环境 | 结果与边界 |
+|---|---|---|
+| 默认后端测试 | `cd server && mvn -B -ntp test`；Linux x86_64、Microsoft OpenJDK 25.0.4.1、Maven 3.9.16 | BUILD SUCCESS；22 tests、0 failures、0 errors、9 skipped，即 13 项实际运行并通过。3 个 Testcontainers 测试类因未设置 `openprotege.testcontainers.enabled=true` 被跳过；不是 PostgreSQL/MySQL 集成测试通过。 |
+| 前端 production build | `cd web && npm run build`；Node v24.21.0、npm 11.19.0 | TypeScript project build 与 Vite 6.4.4 production build 成功。 |
+| 容器测试启用条件 | `mvn -B -ntp -Dopenprotege.testcontainers.enabled=true -Dapi.version=1.40 -f server/pom.xml test` | 当前环境前次容器尝试报告 daemon 最低 Docker API 为 1.40、默认 client 协商为 1.32，故容器集成路径未能在本次当前环境重新验证。既有成功记录分别见证据台账 E-47/E-48。 |
+
+项目目标 JDK 为 21；本节默认测试是在 JDK 25 上运行，不作为 Java 21 兼容性验收。测试总量虽显示 22 项，必须结合 9 项 skipped 阅读；不得将 BUILD SUCCESS 单独表述为全套测试或数据库集成验收通过。后续 CI 应在有兼容 Docker API 的 runner 中显式启用容器测试，并另行完成无 Docker host-native PostgreSQL/MySQL 验收。
