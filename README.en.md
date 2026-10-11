@@ -4,7 +4,7 @@ An open platform for ontology engineering, semantic knowledge modeling, and coll
 
 > **Project stage: Web workspace, backend APIs, and first ontology/AI/reasoning slices**
 >
-> The Spring Boot/PostgreSQL foundation, local invited accounts/sessions, team/project APIs, a React web workspace, RDF/XML/Turtle ontology import/version/export/history restore, an initial HermiT OWL 2 DL profile/consistency/explanation/classification and read-only SWRL reasoning slice, and an opt-in OpenAI-compatible AI chat proxy configured with server-side secrets are implemented. The desktop client, ontology entity editing, round-trip acceptance, maximum-file resource testing, full collaboration, browser E2E testing, and Compose bridge deployment acceptance remain incomplete.
+> The Spring Boot/Web foundation supports selectable PostgreSQL or MySQL persistence, local invited accounts/sessions, team/project APIs, a React web workspace, RDF/XML/Turtle ontology import/version/export/history restore, an initial HermiT OWL 2 DL profile/consistency/explanation/classification and read-only SWRL reasoning slice, and an opt-in OpenAI-compatible AI chat proxy configured with server-side secrets. The desktop client, ontology entity editing, round-trip acceptance, maximum-file resource testing, full collaboration, browser E2E testing, and Compose bridge deployment acceptance remain incomplete.
 
 **Language:** [中文](README.md) | English
 
@@ -27,7 +27,7 @@ The initial source-free baseline commit, `d9caafee6858a958ea7a2944d574407a79f883
 
 Current scope and boundaries:
 
-- Java 21 / Spring Boot 3, PostgreSQL 17, Flyway schema, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. PostgreSQL Testcontainers tests pass for invitation replay rejection, sessions/CSRF/logout, and team/project isolation boundaries; Compose bridge networking remains blocked in the current environment.
+- Java 21 / Spring Boot 3, selectable PostgreSQL 17/MySQL 8.4 Flyway schemas, Actuator readiness, explicit first-admin bootstrap, local sessions/CSRF, one-time invitations, team/project APIs, and initial server-side role checks are implemented. PostgreSQL and MySQL Testcontainers suites pass; Compose bridge networking remains blocked in the current environment.
 - The React UI includes local login/invitation acceptance, team/project listing and creation, project member settings, ontology snapshot import/version browsing/download/format conversion/history restore as a new immutable snapshot, and AI chat. Browser flows have not received E2E acceptance. Ontology entity editing/deletion, the desktop client, full account recovery/brute-force protection, and production multi-instance sessions are not implemented.
 - Small ontology parsing/integration samples pass; Pizza round-trip fidelity and performance/resource safety at the 500 MiB maximum remain unverified.
 - HermiT provides OWL 2 DL profile/consistency checks, unsatisfiable-class and bounded global inconsistency explanations, class hierarchy and individual classification; one Manchester-syntax SWRL rule can be applied transiently without saving changes. The initial service is limited to one active worker, 100,000 axioms, and 60 seconds by default; timeout cancellation, concurrent load, large/adversarial ontology resource use, and browser E2E remain unverified.
@@ -45,6 +45,9 @@ See the [engineering documentation index](docs/engineering/README.md) for the au
 | [Draft use cases](docs/requirements/use-cases.md) | Local editing, team projects, file exchange, and AI-assisted scenarios |
 | [Draft acceptance criteria](docs/requirements/acceptance-criteria.md) | Future verifiable criteria; Web foundation AC-13 has test evidence, while product features remain unverified |
 | [Requirements traceability matrix](docs/requirements/traceability-matrix.csv) | Requirements mapped to acceptance criteria and implementation status |
+| [Development and deployment guide](docs/guides/development-and-deployment.md) | Step-by-step setup, native database configuration, dev run, Compose deployment, backups, and troubleshooting (Chinese) |
+| [Chinese end-to-end developer scenario](docs/guides/examples/business-scenario-zh.md) | Community-care ontology, roles, executable API workflow, and UI/E2E boundary |
+| [English end-to-end developer scenario](docs/guides/examples/business-scenario-en.md) | Learning ontology, role permissions, executable API workflow, and UI/E2E limits |
 | [Identity/team/project data model](docs/architecture/data-model.md) | Initial entities, authorization boundaries, and open validation items |
 | [ADR-0002](docs/architecture/adr/0002-identity-team-project-authorization.md) | Identity and project authorization implementation baseline |
 | [Engineering audit and stage report](docs/engineering/README.md) | Repository baseline, architecture inventory, build/test status, security, upstreams, risks, and roadmap |
@@ -53,14 +56,96 @@ Requirements and engineering documents are primarily in Chinese. English transla
 
 ## Development, build, and tests
 
-The Web service requires Docker Engine/Compose v2; the browser client requires Node.js 22+. Build and run the frontend separately:
+Local development does not require Docker. It requires Java 21, Maven 3.9+,
+Node.js 22+, and a locally installed/running PostgreSQL 17 or MySQL 8.4
+service. Docker Engine/Compose v2 is only needed for production-style
+container deployment and optional containerized tests.
+
+Build and run the frontend separately:
 
 ```sh
 npm ci --prefix web
 npm --prefix web run dev
 ```
 
-The Vite dev server proxies `/api` to `http://localhost:8080`. The production Compose image builds the frontend and serves it from Spring Boot on the same origin. Run backend tests (including PostgreSQL Testcontainers integration tests) with Docker API `1.40`:
+### Local development and debugging
+
+Spring profiles combine `APP_PROFILE` and `DB_VENDOR`; the default local mode
+is `dev,postgres`. Dev connects directly to the database on `127.0.0.1` and
+does not start or depend on a database container. The dev profile enables
+application-package DEBUG logging and development error messages. Production
+Compose continues to use `prod`. Vite proxies `/api` and `/actuator` to
+`http://localhost:8080`; override the target with `VITE_API_TARGET`.
+
+For a full setup walkthrough—including database installation/creation,
+PowerShell instructions, first login, production deployment, backups, and
+troubleshooting—see the [step-by-step development and deployment guide
+(Chinese)](docs/guides/development-and-deployment.md).
+
+```sh
+cp .env.dev.example .env
+# Optionally change the local-only credentials in .env.
+# Create the configured database and user in your local PostgreSQL/MySQL service
+# and make sure that service is running.
+# Terminal 1 (Bash): run the backend
+set -a; . ./.env; set +a
+mvn -f server/pom.xml spring-boot:run
+# Terminal 2: install dependencies once, then run the hot-reloading Web client
+npm ci --prefix web
+npm --prefix web run dev
+```
+
+For PostgreSQL, create a role and database with
+`CREATE ROLE openprotege LOGIN PASSWORD '<local-dev-password>';` and
+`CREATE DATABASE openprotege OWNER openprotege;`. For MySQL, set
+`DB_VENDOR=mysql` and `DB_PORT=3306` in `.env`, then create and grant access to
+the configured database/user:
+
+```sql
+CREATE DATABASE openprotege CHARACTER SET utf8mb4;
+CREATE USER 'openprotege'@'127.0.0.1' IDENTIFIED BY '<same local password as DB_PASSWORD>';
+GRANT ALL PRIVILEGES ON openprotege.* TO 'openprotege'@'127.0.0.1';
+```
+
+The application applies the selected Flyway migrations at startup.
+
+With the VS Code Java extension, press F5 and select `OpenProtégé Server (dev)`
+when `.env` exists at the workspace root and your local database is running.
+The launch starts the Vite frontend task as well. The production Docker image
+continues to serve the Web bundle from the backend on the same origin.
+
+### Switch between PostgreSQL and MySQL
+
+PostgreSQL 17 is the default for development and production. For local
+development, set `DB_VENDOR` to `postgres` or `mysql`, point `DB_HOST` at the
+local database, and set `DB_PORT` (5432 for PostgreSQL, 3306 for MySQL). Each
+engine uses its own JDBC driver and Flyway migrations. MySQL ontology content
+uses `LONGBLOB`, and UUIDs are stored in canonical text form. Selecting another
+engine does not migrate data; back up data and configure a database account for
+each engine.
+
+For production Compose, the database data volume must be dedicated to its
+engine; never share one volume between PostgreSQL and MySQL. Example MySQL
+Compose settings:
+
+```dotenv
+APP_PROFILE=prod
+DB_VENDOR=mysql
+DB_IMAGE=mysql:8.4
+DB_PORT=3306
+DB_CONTAINER_PORT=3306
+DB_VOLUME=mysql_data
+DB_DATA_PATH=/var/lib/mysql
+MYSQL_ROOT_PASSWORD=<a separate strong root password>
+```
+
+Keep `DB_USER`, `DB_PASSWORD`, `DB_NAME`, and administrator bootstrap settings
+from `.env`. This selects an engine for a new database; it is not a
+PostgreSQL-to-MySQL migration tool. Back up existing data and verify
+`DB_VOLUME` points to the dedicated target volume before running
+`docker compose up --build --wait`.
+
+Run backend tests (including PostgreSQL Testcontainers integration tests) with Docker API `1.40`:
 
 ```sh
 mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
@@ -68,19 +153,28 @@ mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
 
 ### Production Compose deployment (local)
 
-From the repository root, create and edit the ignored environment file before starting. Set the database username/password and bootstrap administrator email/password; the administrator password must contain at least 12 characters.
+For detailed PostgreSQL/MySQL configuration, operations, and data-protection
+instructions, see the [production deployment chapter of the step-by-step guide
+(Chinese)](docs/guides/development-and-deployment.md#九使用-docker-compose-部署生产模式).
+Quick start:
 
 ```sh
 cp .env.example .env
 chmod 600 .env
-# Set DB_USER, DB_PASSWORD, ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD in .env.
+# Edit .env with dedicated database credentials and administrator credentials.
+# Bootstrap password must be 12–128 characters.
+docker compose config --quiet
 docker compose up --build --wait
 curl --fail http://127.0.0.1:8080/actuator/health/readiness
 ```
 
-Application and database ports bind to `127.0.0.1` by default. For external access, use a TLS-terminating reverse proxy; do not expose the container ports directly. The administrator is bootstrapped only on an empty database. After confirming the account was created, remove `ADMIN_BOOTSTRAP_PASSWORD` from `.env` and protect the database password. Administrators can issue single-use invitation tokens in the Web admin section; the service does not send email, so deliver tokens through a secure channel. `docker compose down` stops services but preserves the database volume. Do not use `down --volumes` unless deleting all persistent database data is intentional.
-
-For a first empty database, set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`; the application has no default credentials. Ontology uploads default to 500 MiB and can be adjusted with `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE`; this limit is not evidence that maximum-size performance has passed. Optional AI configuration: `OPENPROTEGE_AI_ENABLED=true`, `OPENPROTEGE_AI_PROVIDER=deepseek`, `OPENPROTEGE_AI_BASE_URL=https://api.deepseek.com/v1`, `OPENPROTEGE_AI_MODEL=deepseek-chat`, and `OPENPROTEGE_AI_API_KEY=<server-side secret>`. Other OpenAI-compatible services can override provider, base URL, and model. Never place the API key in browser config or commit it.
+Application and database ports bind to `127.0.0.1` by default. Configure a
+separately managed TLS reverse proxy before external access. The administrator
+is bootstrapped only on an empty database; remove the bootstrap password after
+the first successful login. `docker compose down` preserves the named database
+volume; removing volumes can permanently delete database data. Upload/reasoning
+limits and optional server-side AI configuration are documented in the
+step-by-step guide.
 
 ## Upstream projects and license
 

@@ -1,7 +1,8 @@
 # OpenProtégé Web Server Foundation
 
-This module provides the Java 21 / Spring Boot backend, identity/team/project
-APIs, RDF/XML/Turtle ontology import/version/export, and an optional
+This module provides the Java 21 / Spring Boot backend, selectable PostgreSQL
+17 or MySQL 8.4 persistence, identity/team/project APIs, RDF/XML/Turtle
+ontology import/version/export, and an optional
 OpenAI-compatible AI chat proxy. The React frontend is built into the Spring
 Boot jar by the root Compose image. The desktop client, ontology entity editing/deletion, round-trip acceptance,
 browser E2E, and production deployment acceptance are not complete. Historical
@@ -9,21 +10,43 @@ version restore is available as a new immutable snapshot.
 
 ## Local prerequisites
 
-- Docker Engine and Docker Compose v2
-- Java 21 and Maven 3.9+ for running the integration tests locally
+- Java 21, Maven 3.9+, and Node.js 22+
+- A locally installed and running PostgreSQL 17 or MySQL 8.4 database for development
+- Docker Engine/Compose v2 only for containerized tests and production-style deployment
 
-Compose database/server ports bind to loopback only. Database credentials and
-first-administrator bootstrap credentials must be supplied by the operator.
-Never commit real credentials or use development passwords for a deployment.
-Bootstrap credentials are consumed only when the database contains no users;
-there is no default administrator password.
+For the full operator walkthrough—including native database installation and
+setup, Windows PowerShell, local startup, first login, production Compose
+deployment, backups, and troubleshooting—see the [Development and Deployment
+Guide](../docs/guides/development-and-deployment.md).
+
+Local development runs directly on the host and does not require Docker or
+containers. Database credentials and first-administrator bootstrap credentials
+must be supplied by the operator. Never commit real credentials or use
+development passwords for a deployment. Bootstrap credentials are consumed
+only when the database contains no users; there is no default administrator
+password.
 
 For a guided deployment from a fresh checkout, copy the root `.env.example` to
 `.env`, set its required database and bootstrap administrator values, and
 follow the Compose deployment steps in the root README. The example leaves
 credentials blank and `.env` is git-ignored.
 
-## Start the service and database
+For local debugging, copy `.env.dev.example` to the workspace-root `.env`,
+create the configured database/user in your native database installation, and
+ensure the database service is running. In Bash, load `.env` and run
+`mvn -f server/pom.xml spring-boot:run`; run `npm ci --prefix web` once and
+`npm --prefix web run dev` in another terminal. VS Code F5 reads `.env`, starts
+the Vite development task, and launches the Java backend. `APP_PROFILE=dev`
+selects developer diagnostics; production deployment should use
+`APP_PROFILE=prod`.
+
+`DB_VENDOR=postgres` (default) and `DB_VENDOR=mysql` select PostgreSQL 17 or
+MySQL 8.4. Set `DB_HOST` and `DB_PORT` to the native database service
+(`127.0.0.1:5432` or `127.0.0.1:3306` by default). MySQL has its own Flyway
+migration set, JDBC driver, UUID mapping, and `LONGBLOB` ontology content
+storage. Database selection is not an automatic cross-engine data migration.
+
+## Start the production Compose stack
 
 ```sh
 export DB_USER=openprotege

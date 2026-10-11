@@ -1,16 +1,21 @@
 services:
   database:
-    image: postgres:17-alpine
+    image: ${DB_IMAGE:-postgres:17-alpine}
     environment:
+      DB_VENDOR: ${DB_VENDOR:-postgres}
       POSTGRES_DB: ${DB_NAME:-openprotege}
       POSTGRES_USER: ${DB_USER:?Set DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-openprotege}
+      MYSQL_USER: ${DB_USER:?Set DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-${DB_PASSWORD:?Set DB_PASSWORD}}
     ports:
-      - "127.0.0.1:${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:${DB_CONTAINER_PORT:-5432}"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${DB_VOLUME:-postgres_data}:${DB_DATA_PATH:-/var/lib/postgresql/data}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      test: ["CMD-SHELL", "if [ \"$${DB_VENDOR}\" = mysql ]; then mysqladmin ping -h 127.0.0.1 -u\"$${MYSQL_USER}\" -p\"$${MYSQL_PASSWORD}\" --silent; else pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"; fi"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -24,7 +29,11 @@ services:
       database:
         condition: service_healthy
     environment:
-      DB_URL: jdbc:postgresql://database:5432/${DB_NAME:-openprotege}
+      APP_PROFILE: ${APP_PROFILE:-prod}
+      DB_VENDOR: ${DB_VENDOR:-postgres}
+      DB_HOST: database
+      DB_CONTAINER_PORT: ${DB_CONTAINER_PORT:-5432}
+      DB_NAME: ${DB_NAME:-openprotege}
       DB_USER: ${DB_USER:?Set DB_USER}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
       ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-}
@@ -47,3 +56,4 @@ services:
 
 volumes:
   postgres_data:
+  mysql_data:

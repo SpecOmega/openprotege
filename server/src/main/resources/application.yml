@@ -1,13 +1,8 @@
 spring:
+  profiles:
+    active: ${APP_PROFILE:dev},${DB_VENDOR:postgres}
   application:
     name: openprotege-server
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/openprotege}
-    username: ${DB_USER:openprotege}
-    password: ${DB_PASSWORD}
-  flyway:
-    clean-disabled: true
-    validate-on-migrate: true
   servlet:
     multipart:
       max-file-size: ${OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE:500MB}

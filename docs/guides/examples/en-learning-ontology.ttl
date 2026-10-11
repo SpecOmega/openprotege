@@ -1,0 +1,35 @@
+@prefix : <https://example.org/openprotege/en-learning#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.org/openprotege/en-learning> a owl:Ontology ;
+    rdfs:label "Learning services ontology (demo)"@en ;
+    rdfs:comment "Fictional data used only to demonstrate the local OpenProtégé workflow."@en .
+
+:Person a owl:Class ;
+    rdfs:label "Person"@en .
+
+:Student a owl:Class ;
+    rdfs:subClassOf :Person ;
+    rdfs:label "Student"@en .
+
+:Course a owl:Class ;
+    rdfs:label "Course"@en .
+
+:ActiveStudent a owl:Class ;
+    rdfs:subClassOf :Person ;
+    rdfs:label "Active student"@en .
+
+:enrolledIn a owl:ObjectProperty ;
+    rdfs:domain :Student ;
+    rdfs:range :Course ;
+    rdfs:label "enrolled in"@en .
+
+:alice a owl:NamedIndividual, :Student ;
+    rdfs:label "Alice Example (fictional)"@en ;
+    :enrolledIn :ontology101 .
+
+:ontology101 a owl:NamedIndividual, :Course ;
+    rdfs:label "Introduction to Ontology Engineering (demo course)"@en .

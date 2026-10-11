@@ -1,5 +1,7 @@
 package com.specomega.openprotege.server.team;
 
+import com.specomega.openprotege.server.database.DatabaseDialect;
+import com.specomega.openprotege.server.database.JdbcUuid;
 import com.specomega.openprotege.server.security.ActorResolver;
 import com.specomega.openprotege.server.security.AuditLog;
 import org.springframework.http.HttpStatus;
@@ -15,11 +17,14 @@ public class TeamService {
     private final JdbcTemplate jdbcTemplate;
     private final ActorResolver actorResolver;
     private final AuditLog auditLog;
+    private final DatabaseDialect databaseDialect;
 
-    public TeamService(JdbcTemplate jdbcTemplate, ActorResolver actorResolver, AuditLog auditLog) {
+    public TeamService(JdbcTemplate jdbcTemplate, ActorResolver actorResolver, AuditLog auditLog,
+                       DatabaseDialect databaseDialect) {
         this.jdbcTemplate = jdbcTemplate;
         this.actorResolver = actorResolver;
         this.auditLog = auditLog;
+        this.databaseDialect = databaseDialect;
     }
 
     @Transactional
@@ -28,7 +33,7 @@ public class TeamService {
         UUID teamId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO teams (id, name) VALUES (?, ?)", teamId, name.trim());
         jdbcTemplate.update(
-                "INSERT INTO team_memberships (team_id, user_id, role) VALUES (?, ?, 'OWNER')",
+                "INSERT INTO team_memberships (team_id, user_id, \"role\") VALUES (?, ?, 'OWNER')",
                 teamId, userId);
         auditLog.record(userId, "TEAM_CREATED", "TEAM", teamId);
         return new TeamView(teamId, name.trim(), TeamRole.OWNER);
@@ -46,15 +51,23 @@ public class TeamService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "The requested team role cannot be assigned");
         }
         ensureUserExists(targetUserId);
-        int changed = jdbcTemplate.update(
-                """
-                INSERT INTO team_memberships (team_id, user_id, role)
-                VALUES (?, ?, ?)
-                ON CONFLICT (team_id, user_id) DO UPDATE SET role = EXCLUDED.role
-                WHERE team_memberships.role <> 'OWNER'
-                """,
+        if (databaseDialect.isMysql() && isTeamOwner(teamId, targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "The team owner role cannot be changed here");
+        }
+        int changed = jdbcTemplate.update(databaseDialect.isMysql()
+                        ? """
+                          INSERT INTO team_memberships (team_id, user_id, "role")
+                          VALUES (?, ?, ?)
+                          ON DUPLICATE KEY UPDATE "role" = IF("role" <> 'OWNER', VALUES("role"), "role")
+                          """
+                        : """
+                          INSERT INTO team_memberships (team_id, user_id, "role")
+                          VALUES (?, ?, ?)
+                          ON CONFLICT (team_id, user_id) DO UPDATE SET "role" = EXCLUDED."role"
+                          WHERE team_memberships."role" <> 'OWNER'
+                          """,
                 teamId, targetUserId, requestedRole.name());
-        if (changed != 1) {
+        if (!databaseDialect.isMysql() && changed != 1) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "The team owner role cannot be changed here");
         }
         auditLog.record(actorId, "TEAM_MEMBER_SET", "TEAM", teamId, targetUserId);
@@ -70,7 +83,7 @@ public class TeamService {
         }
         UUID targetUserId = jdbcTemplate.query(
                         "SELECT id FROM users WHERE email = ?",
-                        (rs, row) -> rs.getObject("id", UUID.class),
+                        (rs, row) -> JdbcUuid.read(rs, "id"),
                         email.trim().toLowerCase(java.util.Locale.ROOT))
                 .stream().findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -81,14 +94,14 @@ public class TeamService {
         UUID userId = actorResolver.requireUserId(actor);
         return jdbcTemplate.query(
                 """
-                SELECT t.id, t.name, tm.role
+                SELECT t.id, t.name, tm."role"
                 FROM teams t
                 JOIN team_memberships tm ON tm.team_id = t.id
                 WHERE tm.user_id = ?
                 ORDER BY t.name, t.id
                 """,
                 (rs, row) -> new TeamView(
-                        rs.getObject("id", UUID.class),
+                        JdbcUuid.read(rs, "id"),
                         rs.getString("name"),
                         TeamRole.valueOf(rs.getString("role"))),
                 userId);
@@ -103,14 +116,14 @@ public class TeamService {
         }
         return jdbcTemplate.query(
                 """
-                SELECT u.id, u.email, tm.role
+                SELECT u.id, u.email, tm."role"
                 FROM team_memberships tm
                 JOIN users u ON u.id = tm.user_id
                 WHERE tm.team_id = ?
                 ORDER BY u.email
                 """,
                 (rs, row) -> new TeamMemberView(
-                        rs.getObject("id", UUID.class),
+                        JdbcUuid.read(rs, "id"),
                         rs.getString("email"),
                         TeamRole.valueOf(rs.getString("role"))),
                 teamId);
@@ -118,7 +131,7 @@ public class TeamService {
 
     private TeamRole teamRole(UUID teamId, UUID userId) {
         return jdbcTemplate.query(
-                        "SELECT role FROM team_memberships WHERE team_id = ? AND user_id = ?",
+                        "SELECT \"role\" FROM team_memberships WHERE team_id = ? AND user_id = ?",
                         (rs, row) -> TeamRole.valueOf(rs.getString("role")),
                         teamId, userId)
                 .stream().findFirst()
@@ -129,6 +142,15 @@ public class TeamService {
         if (jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users WHERE id = ?", Integer.class, userId) == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
+    }
+
+    private boolean isTeamOwner(UUID teamId, UUID userId) {
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM team_memberships
+                WHERE team_id = ? AND user_id = ? AND "role" = 'OWNER'
+                """,
+                Integer.class, teamId, userId) > 0;
     }
 
     public enum TeamRole { OWNER, ADMIN, MEMBER }

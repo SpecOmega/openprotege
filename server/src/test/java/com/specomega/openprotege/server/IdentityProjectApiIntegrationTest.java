@@ -20,6 +20,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -318,6 +322,66 @@ class IdentityProjectApiIntegrationTest {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM ontology_audit_logs WHERE project_id = ? AND action = 'EXPORT' AND result = 'SUCCESS'",
                 Integer.class, projectId)).isEqualTo(3);
+    }
+
+    @Test
+    void bilingualBusinessScenarioOntologiesRunThroughImportAndReasoningApis() throws Exception {
+        ApiClient admin = new ApiClient();
+        admin.login("admin@example.test", ADMIN_PASSWORD);
+        UUID projectId = UUID.fromString(objectMapper.readTree(admin.post("/api/projects",
+                "{\"name\":\"Bilingual ontology scenarios\",\"visibility\":\"PRIVATE\"}").body())
+                .get("id").asText());
+
+        verifyScenarioOntology(admin, projectId, "zh-care-ontology.ttl",
+                "https://example.org/openprotege/zh-care", "lin");
+        verifyScenarioOntology(admin, projectId, "en-learning-ontology.ttl",
+                "https://example.org/openprotege/en-learning", "alice");
+        assertThat(objectMapper.readTree(admin.get(
+                "/api/projects/" + projectId + "/ontologies/versions").body()).get("total").asLong())
+                .isEqualTo(2);
+    }
+
+    private void verifyScenarioOntology(ApiClient admin, UUID projectId, String fixtureName,
+                                       String namespace, String individual) throws Exception {
+        Path examples = Path.of("docs/guides/examples");
+        if (!Files.isDirectory(examples)) {
+            examples = Path.of("../docs/guides/examples");
+        }
+        String turtle = Files.readString(examples.resolve(fixtureName), StandardCharsets.UTF_8);
+        Response imported = admin.postMultipart("/api/projects/" + projectId + "/ontologies/import",
+                fixtureName, turtle, null);
+        assertThat(imported.status()).as(imported.body()).isEqualTo(201);
+        JsonNode version = objectMapper.readTree(imported.body());
+        UUID versionId = UUID.fromString(version.get("id").asText());
+        assertThat(version.get("format").asText()).isEqualTo("Turtle");
+        assertThat(version.get("ontologyIri").asText()).isEqualTo(namespace);
+
+        String reasoning = "/api/projects/" + projectId + "/ontologies/versions/"
+                + versionId + "/reasoning";
+        JsonNode validation = objectMapper.readTree(admin.post(reasoning + "/start",
+                "{\"engine\":\"HERMIT\"}").body());
+        assertThat(validation.get("inOwl2DlProfile").asBoolean()).isTrue();
+        assertThat(validation.get("consistent").asBoolean()).isTrue();
+
+        JsonNode classification = objectMapper.readTree(admin.post(reasoning + "/classify",
+                "{\"individualIri\":\"" + namespace + "#" + individual + "\"}").body());
+        assertThat(stringValues(classification.get("allTypeIris")))
+                .contains(namespace + "#Student", namespace + "#Person");
+
+        JsonNode ruleResult = objectMapper.readTree(admin.post(reasoning + "/rules/apply",
+                "{\"ruleText\":\"Rule: <" + namespace + "#Student>(?x) -> <"
+                        + namespace + "#ActiveStudent>(?x)\",\"individualIri\":\""
+                        + namespace + "#" + individual + "\"}").body());
+        assertThat(stringValues(ruleResult.get("inferredTypeIris")))
+                .contains(namespace + "#ActiveStudent");
+        assertThat(admin.get("/api/projects/" + projectId + "/ontologies/versions/"
+                + versionId + "/export").body()).isEqualTo(turtle);
+    }
+
+    private static List<String> stringValues(JsonNode values) {
+        List<String> strings = new ArrayList<>();
+        values.forEach(value -> strings.add(value.asText()));
+        return strings;
     }
 
     private UUID userId(String email) {

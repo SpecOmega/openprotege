@@ -36,6 +36,8 @@ class OpenProtegeServerApplicationTest {
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.datasource.hikari.connection-timeout", () -> 1_000);
+        registry.add("spring.flyway.locations",
+                () -> "classpath:db/migration/postgresql,classpath:db/migration-test");
         registry.add("openprotege.bootstrap.admin-email", () -> "bootstrap@example.test");
         registry.add("openprotege.bootstrap.admin-password", () -> "test-bootstrap-password-123");
     }

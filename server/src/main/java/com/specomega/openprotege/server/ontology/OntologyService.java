@@ -1,5 +1,7 @@
 package com.specomega.openprotege.server.ontology;
 
+import com.specomega.openprotege.server.database.DatabaseDialect;
+import com.specomega.openprotege.server.database.JdbcUuid;
 import com.specomega.openprotege.server.project.ProjectService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,17 +26,20 @@ public class OntologyService {
     private final OntologyParser ontologyParser;
     private final TransactionTemplate transactionTemplate;
     private final long maximumFileSize;
+    private final DatabaseDialect databaseDialect;
 
     public OntologyService(JdbcTemplate jdbcTemplate,
                            ProjectService projectService,
                            OntologyParser ontologyParser,
                            PlatformTransactionManager transactionManager,
+                           DatabaseDialect databaseDialect,
                            @Value("${openprotege.ontology.max-file-size:500MB}") org.springframework.util.unit.DataSize maximumFileSize) {
         this.jdbcTemplate = jdbcTemplate;
         this.projectService = projectService;
         this.ontologyParser = ontologyParser;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.maximumFileSize = maximumFileSize.toBytes();
+        this.databaseDialect = databaseDialect;
     }
 
     public VersionView importOntology(UUID projectId, MultipartFile upload, String requestedFormat,
@@ -76,14 +81,14 @@ public class OntologyService {
                                     (id, project_id, format, content, ontology_iri, axiom_count, file_name, created_by)
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                                 """);
-                        statement.setObject(1, versionId);
-                        statement.setObject(2, projectId);
+                        statement.setObject(1, databaseDialect.uuidParameter(versionId));
+                        statement.setObject(2, databaseDialect.uuidParameter(projectId));
                         statement.setString(3, formatForInsert.displayName());
                         statement.setBinaryStream(4, input, actualSize);
                         statement.setString(5, parsed.ontologyIri());
                         statement.setLong(6, parsed.axiomCount());
                         statement.setString(7, fileName);
-                        statement.setObject(8, actorId);
+                        statement.setObject(8, databaseDialect.uuidParameter(actorId));
                         return statement;
                     });
                 } catch (IOException exception) {
@@ -197,8 +202,8 @@ public class OntologyService {
                 ORDER BY created_at DESC, id
                 LIMIT ? OFFSET ?
                 """,
-                (rs, row) -> new VersionView(rs.getObject("id", UUID.class),
-                        rs.getObject("project_id", UUID.class), rs.getString("format"),
+                (rs, row) -> new VersionView(JdbcUuid.read(rs, "id"),
+                        JdbcUuid.read(rs, "project_id"), rs.getString("format"),
                         rs.getString("ontology_iri"), rs.getLong("axiom_count"), rs.getString("file_name"),
                         rs.getTimestamp("created_at").toInstant()),
                 projectId, pageSize, offset);
@@ -225,8 +230,8 @@ public class OntologyService {
                         FROM ontology_versions
                         WHERE project_id = ? AND id = ?
                         """,
-                        (rs, row) -> new StoredVersion(rs.getObject("id", UUID.class),
-                                rs.getObject("project_id", UUID.class),
+                        (rs, row) -> new StoredVersion(JdbcUuid.read(rs, "id"),
+                                JdbcUuid.read(rs, "project_id"),
                                 OntologyFormat.parse(rs.getString("format")),
                                 rs.getBytes("content"), rs.getString("ontology_iri"),
                                 rs.getLong("axiom_count"), rs.getString("file_name"),
@@ -242,8 +247,8 @@ public class OntologyService {
                         FROM ontology_versions
                         WHERE project_id = ? AND id = ?
                         """,
-                        (rs, row) -> new VersionView(rs.getObject("id", UUID.class),
-                                rs.getObject("project_id", UUID.class), rs.getString("format"),
+                        (rs, row) -> new VersionView(JdbcUuid.read(rs, "id"),
+                                JdbcUuid.read(rs, "project_id"), rs.getString("format"),
                                 rs.getString("ontology_iri"), rs.getLong("axiom_count"),
                                 rs.getString("file_name"), rs.getTimestamp("created_at").toInstant()),
                         projectId, versionId)
@@ -289,7 +294,7 @@ public class OntologyService {
         }
         return jdbcTemplate.query(
                         "SELECT id FROM users WHERE email = ?",
-                        (rs, row) -> rs.getObject("id", UUID.class), actor.getName())
+                        (rs, row) -> JdbcUuid.read(rs, "id"), actor.getName())
                 .stream().findFirst().orElse(null);
     }
 

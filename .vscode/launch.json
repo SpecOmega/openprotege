@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "OpenProtégé Server (dev)",
+      "request": "launch",
+      "mainClass": "com.specomega.openprotege.server.OpenProtegeServerApplication",
+      "projectName": "openprotege-server",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "OpenProtégé Web (dev)"
+    }
+  ]
+}

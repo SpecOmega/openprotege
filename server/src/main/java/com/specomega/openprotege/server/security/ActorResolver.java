@@ -1,5 +1,6 @@
 package com.specomega.openprotege.server.security;
 
+import com.specomega.openprotege.server.database.JdbcUuid;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ public class ActorResolver {
         }
         return jdbcTemplate.query(
                         "SELECT id FROM users WHERE email = ?",
-                        (resultSet, rowNumber) -> resultSet.getObject("id", UUID.class),
+                        (resultSet, rowNumber) -> JdbcUuid.read(resultSet, "id"),
                         authentication.getName())
                 .stream()
                 .findFirst()

@@ -6,6 +6,8 @@
 
 语言：中文主文档；英文翻译状态：Pending，见 [工程文档索引](../engineering/README.md)。
 
+本机可运行的中英文开发案例见[社区健康服务场景](../guides/examples/business-scenario-zh.md)与[learning services scenario](../guides/examples/business-scenario-en.md)。它们覆盖邀请、角色、团队项目、Turtle 本体、HermiT/SWRL 和恢复 API；不替代浏览器 E2E、桌面工作流或完整产品验收。
+
 ## 用例边界
 
 用例基于负责人确认的产品边界，并标明实现和验证边界。当前有 React Web 工作区和身份、团队、项目、本体文件 API；桌面端仍未实现。团队/项目角色见 [SRS](./SRS.md) 第 7 节。每项关联 [SRS](./SRS.md) 与 [验收标准](./acceptance-criteria.md)。
@@ -34,10 +36,10 @@
   2. Owner/Admin 创建团队并维护团队成员；Admin 也可创建团队项目。
   3. 项目 Owner/Admin 创建项目、设置可见性并显式配置项目成员。
   4. 对团队项目，系统同时验证成员当前属于团队且显式加入项目。
-  5. 系统在服务端按项目与角色校验每次受保护请求；Editor 的本体写操作由后续模块提供。
+  5. 系统在服务端按项目与角色校验每次受保护请求；Owner/Admin/Editor 可写入本体快照，Viewer 只读。
 - **失败/替代流程**：未认证、角色不足或跨项目请求时，服务端拒绝；不能仅隐藏界面操作。
 - **关联需求**：OP-PRJ-001～003、OP-WEB-001～004、OP-NFR-SEC-001。
-- **验证状态**：React UI 的登录、团队/项目列表和角色条件界面已实现；部分后端路径经 PostgreSQL API 集成测试验证。浏览器 E2E、Admin/Editor 完整权限矩阵及生产部署待验证。
+- **验证状态**：React UI 的登录、团队/项目列表和角色条件界面已实现；PostgreSQL API 集成测试及双语可执行 API 场景覆盖部分角色/业务路径。浏览器 E2E、全操作权限矩阵及生产部署待验证；当前工作边界见[已知缺口](../engineering/known-gaps.md)。
 
 ## UC-07 — 管理员邀请用户并建立本地账户
 

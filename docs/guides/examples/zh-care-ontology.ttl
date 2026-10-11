@@ -1,0 +1,35 @@
+@prefix : <https://example.org/openprotege/zh-care#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.org/openprotege/zh-care> a owl:Ontology ;
+    rdfs:label "社区健康服务本体（演示）"@zh ;
+    rdfs:comment "仅用于 OpenProtégé 本机开发流程演示的虚构数据。"@zh .
+
+:Person a owl:Class ;
+    rdfs:label "人员"@zh .
+
+:Student a owl:Class ;
+    rdfs:subClassOf :Person ;
+    rdfs:label "学生"@zh .
+
+:Course a owl:Class ;
+    rdfs:label "课程"@zh .
+
+:ActiveStudent a owl:Class ;
+    rdfs:subClassOf :Person ;
+    rdfs:label "活跃学生"@zh .
+
+:enrolledIn a owl:ObjectProperty ;
+    rdfs:domain :Student ;
+    rdfs:range :Course ;
+    rdfs:label "选修课程"@zh .
+
+:lin a owl:NamedIndividual, :Student ;
+    rdfs:label "林同学（虚构）"@zh ;
+    :enrolledIn :ontology101 .
+
+:ontology101 a owl:NamedIndividual, :Course ;
+    rdfs:label "本体工程导论（演示课程）"@zh .

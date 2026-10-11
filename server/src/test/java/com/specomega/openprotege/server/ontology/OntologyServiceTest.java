@@ -1,6 +1,7 @@
 package com.specomega.openprotege.server.ontology;
 
 import com.specomega.openprotege.server.project.ProjectService;
+import com.specomega.openprotege.server.database.DatabaseDialect;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
@@ -22,7 +23,7 @@ class OntologyServiceTest {
         when(projectService.requireOntologyWriteAccess(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull()))
                 .thenReturn(actorId);
         OntologyService service = new OntologyService(jdbcTemplate, projectService, new OntologyParser(),
-                mock(PlatformTransactionManager.class), DataSize.ofBytes(10));
+                mock(PlatformTransactionManager.class), mock(DatabaseDialect.class), DataSize.ofBytes(10));
         MockMultipartFile upload = new MockMultipartFile(
                 "file", "too-large.owl", "application/octet-stream", new byte[11]);
 

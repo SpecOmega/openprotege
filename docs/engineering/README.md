@@ -2,7 +2,7 @@
 
 审计基准日期 / Audit baseline date: 2026-10-09
 
-当前复核检出 / Current reviewed checkout: `725e9d21bd36d973211e65e67d248ef4a562f10c`
+当前复核时 Git HEAD / Git HEAD at current review: `aa935441a32b4699a980c7de2611cc2e4a5d1cf3`（当前工作树还含未提交改动 / worktree also contains uncommitted changes）
 
 初始无源码基线 / Initial no-source baseline: `d9caafee6858a958ea7a2944d574407a79f88309`
 
@@ -35,6 +35,9 @@
 Pending means that an English translation has not been prepared or independently reviewed. The Chinese files are not presented as complete English documentation.
 
 ## Requirements baseline / 需求基线
+
+开发者与运维人员的逐步运行手册见[开发与部署保姆级指南](../guides/development-and-deployment.md)。
+中英文 dev 业务链路及可执行 API 场景见[示例索引](../guides/examples/business-scenario-zh.md)和[English scenario](../guides/examples/business-scenario-en.md)；场景脚本不是浏览器 E2E 验收。
 
 | File | Purpose / 用途 | English translation |
 |---|---|---|

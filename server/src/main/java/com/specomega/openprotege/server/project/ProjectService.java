@@ -1,5 +1,7 @@
 package com.specomega.openprotege.server.project;
 
+import com.specomega.openprotege.server.database.DatabaseDialect;
+import com.specomega.openprotege.server.database.JdbcUuid;
 import com.specomega.openprotege.server.security.ActorResolver;
 import com.specomega.openprotege.server.security.AuditLog;
 import com.specomega.openprotege.server.team.TeamService;
@@ -18,11 +20,14 @@ public class ProjectService {
     private final JdbcTemplate jdbcTemplate;
     private final ActorResolver actorResolver;
     private final AuditLog auditLog;
+    private final DatabaseDialect databaseDialect;
 
-    public ProjectService(JdbcTemplate jdbcTemplate, ActorResolver actorResolver, AuditLog auditLog) {
+    public ProjectService(JdbcTemplate jdbcTemplate, ActorResolver actorResolver, AuditLog auditLog,
+                          DatabaseDialect databaseDialect) {
         this.jdbcTemplate = jdbcTemplate;
         this.actorResolver = actorResolver;
         this.auditLog = auditLog;
+        this.databaseDialect = databaseDialect;
     }
 
     @Transactional
@@ -44,7 +49,7 @@ public class ProjectService {
                 projectId, normalizedName, visibility.name(), teamId, actorId);
         jdbcTemplate.update(
                 """
-                INSERT INTO project_memberships (project_id, user_id, role)
+                INSERT INTO project_memberships (project_id, user_id, "role")
                 VALUES (?, ?, 'OWNER')
                 """,
                 projectId, actorId);
@@ -79,7 +84,7 @@ public class ProjectService {
         UUID actorId = actorResolver.requireUserId(actor);
         return jdbcTemplate.query(
                 """
-                SELECT p.id, p.name, p.visibility, p.team_id, pm.role
+                SELECT p.id, p.name, p.visibility, p.team_id, pm."role"
                 FROM projects p
                 JOIN project_memberships pm ON pm.project_id = p.id
                 WHERE pm.user_id = ?
@@ -90,10 +95,10 @@ public class ProjectService {
                 ORDER BY p.updated_at DESC, p.id
                 """,
                 (rs, row) -> new ProjectView(
-                        rs.getObject("id", UUID.class),
+                        JdbcUuid.read(rs, "id"),
                         rs.getString("name"),
                         Visibility.valueOf(rs.getString("visibility")),
-                        rs.getObject("team_id", UUID.class),
+                        JdbcUuid.read(rs, "team_id"),
                         ProjectRole.valueOf(rs.getString("role"))),
                 actorId);
     }
@@ -130,15 +135,23 @@ public class ProjectService {
         if (jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users WHERE id = ?", Integer.class, targetUserId) == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
-        int changed = jdbcTemplate.update(
-                """
-                INSERT INTO project_memberships (project_id, user_id, role)
-                VALUES (?, ?, ?)
-                ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role
-                WHERE project_memberships.role <> 'OWNER'
-                """,
+        if (databaseDialect.isMysql() && isProjectOwner(projectId, targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "The project owner role cannot be changed here");
+        }
+        int changed = jdbcTemplate.update(databaseDialect.isMysql()
+                        ? """
+                          INSERT INTO project_memberships (project_id, user_id, "role")
+                          VALUES (?, ?, ?)
+                          ON DUPLICATE KEY UPDATE "role" = IF("role" <> 'OWNER', VALUES("role"), "role")
+                          """
+                        : """
+                          INSERT INTO project_memberships (project_id, user_id, "role")
+                          VALUES (?, ?, ?)
+                          ON CONFLICT (project_id, user_id) DO UPDATE SET "role" = EXCLUDED."role"
+                          WHERE project_memberships."role" <> 'OWNER'
+                          """,
                 projectId, targetUserId, requestedRole.name());
-        if (changed != 1) {
+        if (!databaseDialect.isMysql() && changed != 1) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "The project owner role cannot be changed here");
         }
         auditLog.record(actorId, "PROJECT_MEMBER_SET", "PROJECT", projectId, targetUserId);
@@ -151,7 +164,7 @@ public class ProjectService {
         requireProjectManager(project, actorId);
         UUID targetUserId = jdbcTemplate.query(
                         "SELECT id FROM users WHERE email = ?",
-                        (rs, row) -> rs.getObject("id", UUID.class),
+                        (rs, row) -> JdbcUuid.read(rs, "id"),
                         email.trim().toLowerCase(java.util.Locale.ROOT))
                 .stream().findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -164,14 +177,14 @@ public class ProjectService {
         requireProjectManager(project, actorId);
         return jdbcTemplate.query(
                 """
-                SELECT u.id, u.email, pm.role
+                SELECT u.id, u.email, pm."role"
                 FROM project_memberships pm
                 JOIN users u ON u.id = pm.user_id
                 WHERE pm.project_id = ?
                 ORDER BY u.email
                 """,
                 (rs, row) -> new ProjectMemberView(
-                        rs.getObject("id", UUID.class),
+                        JdbcUuid.read(rs, "id"),
                         rs.getString("email"),
                         ProjectRole.valueOf(rs.getString("role"))),
                 projectId);
@@ -208,10 +221,10 @@ public class ProjectService {
                         FROM projects WHERE id = ?
                         """,
                         (rs, row) -> new ProjectRow(
-                                rs.getObject("id", UUID.class),
+                                JdbcUuid.read(rs, "id"),
                                 rs.getString("name"),
                                 Visibility.valueOf(rs.getString("visibility")),
-                                rs.getObject("team_id", UUID.class)),
+                                JdbcUuid.read(rs, "team_id")),
                         projectId)
                 .stream().findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found"));
@@ -219,7 +232,7 @@ public class ProjectService {
 
     private java.util.Optional<ProjectRole> projectRole(UUID projectId, UUID userId) {
         return jdbcTemplate.query(
-                        "SELECT role FROM project_memberships WHERE project_id = ? AND user_id = ?",
+                        "SELECT \"role\" FROM project_memberships WHERE project_id = ? AND user_id = ?",
                         (rs, row) -> ProjectRole.valueOf(rs.getString("role")),
                         projectId, userId)
                 .stream().findFirst();
@@ -227,7 +240,7 @@ public class ProjectService {
 
     private TeamService.TeamRole teamRole(UUID teamId, UUID userId) {
         return jdbcTemplate.query(
-                        "SELECT role FROM team_memberships WHERE team_id = ? AND user_id = ?",
+                        "SELECT \"role\" FROM team_memberships WHERE team_id = ? AND user_id = ?",
                         (rs, row) -> TeamService.TeamRole.valueOf(rs.getString("role")),
                         teamId, userId)
                 .stream().findFirst()
@@ -240,13 +253,22 @@ public class ProjectService {
                 Integer.class, teamId, userId) > 0;
     }
 
+    private boolean isProjectOwner(UUID projectId, UUID userId) {
+        return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM project_memberships
+                WHERE project_id = ? AND user_id = ? AND "role" = 'OWNER'
+                """,
+                Integer.class, projectId, userId) > 0;
+    }
+
     private java.util.Optional<UUID> authenticatedUserId(Authentication actor) {
         if (actor == null || !actor.isAuthenticated() || actor instanceof AnonymousAuthenticationToken) {
             return java.util.Optional.empty();
         }
         return jdbcTemplate.query(
                         "SELECT id FROM users WHERE email = ?",
-                        (rs, row) -> rs.getObject("id", UUID.class),
+                        (rs, row) -> JdbcUuid.read(rs, "id"),
                         actor.getName())
                 .stream().findFirst();
     }

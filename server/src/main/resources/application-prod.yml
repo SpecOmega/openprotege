@@ -1,0 +1,8 @@
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+
+logging:
+  level:
+    com.specomega.openprotege: INFO

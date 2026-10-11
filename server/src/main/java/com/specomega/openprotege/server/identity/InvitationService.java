@@ -1,5 +1,6 @@
 package com.specomega.openprotege.server.identity;
 
+import com.specomega.openprotege.server.database.JdbcUuid;
 import com.specomega.openprotege.server.security.ActorResolver;
 import com.specomega.openprotege.server.security.AuditLog;
 import org.springframework.http.HttpStatus;
@@ -71,7 +72,7 @@ public class InvitationService {
                 FOR UPDATE
                 """,
                 (resultSet, rowNumber) -> new Invitation(
-                        resultSet.getObject("id", UUID.class),
+                        JdbcUuid.read(resultSet, "id"),
                         resultSet.getString("email"),
                         resultSet.getTimestamp("expires_at").toInstant(),
                         resultSet.getTimestamp("accepted_at") == null

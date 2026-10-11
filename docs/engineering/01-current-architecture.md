@@ -1,8 +1,8 @@
 # 01 — 当前架构事实与边界
 
-审计日期：2026-10-09
+复核日期：2026-10-11
 
-对象：初始无源码基线提交为 `d9caafee6858a958ea7a2944d574407a79f88309`；当前 Web 基础模块工作树基于 `main` HEAD `5734e976846b5de683caa67c9ae2115d8a5017ae`。
+对象：初始无源码基线提交为 `d9caafee6858a958ea7a2944d574407a79f88309`；当前状态依据 Git HEAD `aa935441a32b4699a980c7de2611cc2e4a5d1cf3` 及含未提交改动的工作树复核。
 
 语言：中文主文档；英文翻译状态为 Pending，见 [索引](./README.md)。
 
@@ -12,13 +12,16 @@
 |---|---|---|---|
 | AR-01 | 应用入口与模块边界 | 新增 `server/` Java 21/Spring Boot 3.5.6 服务入口与 Maven 模块；Testcontainers 集成测试通过，Compose bridge 验收受阻。 | VERIFIED（测试范围）；BLOCKED（Compose） |
 | AR-02 | 前端、桌面端、后端、服务进程 | React 19/TypeScript 单页工作区已可构建并打包进 Spring Boot 静态资源；桌面端尚未实现。 | VERIFIED（前端构建/容器镜像构建）；SOURCE-OBSERVED（实现范围） |
-| AR-03 | 数据库、对象存储、缓存、事件队列 | PostgreSQL 17/Flyway 含用户、邀请、团队、项目、成员、本体 BYTEA 版本及本体/管理审计 schema，并由集成测试验证；对象存储/缓存/事件队列尚无。 | VERIFIED（迁移和小样例测试）；SOURCE-OBSERVED（其余） |
-| AR-04 | 本体解析、推理、RDF/OWL/SPARQL/SHACL | OWLAPI 5.1.20 已用于服务端 RDF/XML/Turtle 导入、格式转换和导出；推理、OWL profile 验证及最大尺寸性能未实现/未验证。 | VERIFIED（小样例测试）；UNVERIFIED（其余） |
-| AR-05 | 身份、授权、审计、项目隔离 | 已实现本地密码散列/会话、CSRF、一次性邀请、首管理员显式引导与初步团队/项目授权；关键访问路径有 PostgreSQL API 集成测试。 | VERIFIED（测试覆盖路径）；SOURCE-OBSERVED（实现范围） |
+| AR-03 | 数据库、对象存储、缓存、事件队列 | PostgreSQL 17 或 MySQL 8.4 + 独立 Flyway schema；本体文件分别以 BYTEA/LONGBLOB 保存。MySQL 8.4 Testcontainers 覆盖迁移、UUID、成员角色 upsert、HTTP readiness/登录/项目、本体导入导出/恢复及推理；对象存储/缓存/事件队列尚无。 | VERIFIED（两种数据库迁移及已列出的集成路径）；SOURCE-OBSERVED（其余） |
+| AR-04 | 本体解析、推理、RDF/OWL/SPARQL/SHACL | OWLAPI 5.1.20 用于 RDF/XML/Turtle 导入/格式转换/导出；HermiT 提供 OWL 2 DL profile、一致性、解释、层级和分类，另有临时只读 SWRL 规则切片。中英 Turtle 场景均有 PostgreSQL HTTP API 导入/导出及 HermiT/SWRL 测试；最大尺寸性能仍未验证。 | VERIFIED（列出的服务切片）；UNVERIFIED（其余） |
+| AR-05 | 身份、授权、审计、项目隔离 | 已实现本地密码散列/会话、CSRF、一次性邀请、首管理员显式引导与初步团队/项目授权；关键路径有 PostgreSQL API 和 MySQL 数据访问集成测试，中英文场景 runner 覆盖部分完整角色业务路径。 | VERIFIED（测试覆盖路径）；PARTIAL（全矩阵/浏览器验收） |
 | AR-06 | AI、检索、Agent | 有默认关闭的 OpenAI-compatible chat UI/API；配置密钥仅服务端读取。语义检索、候选变更校验/采纳和 Agent 未实现；无真实 provider 联通证据。 | VERIFIED（mock provider 测试）；UNVERIFIED（外部服务） |
 | AR-07 | 可运行的系统架构 | Testcontainers 的 PostgreSQL 集成测试通过，standalone 服务经 PostgreSQL 返回 HTTP 200 readiness；Compose healthcheck 会检测到本环境 bridge 连接故障并返回失败。 | VERIFIED（隔离测试/standalone 范围）；BLOCKED（Compose bridge） |
+| AR-08 | 本地开发运行 | `dev` profiles 直接连接配置的本机 PostgreSQL/MySQL；Maven 可启动后端，Vite 可启动前端，VS Code F5 配置会启动两者。当前环境没有本机数据库服务，原生数据库无容器端到端仍待验证。 | SOURCE-OBSERVED（配置/入口）；UNVERIFIED（本机数据库实跑） |
 
 README 中的产品定位不能证明任何运行功能。具体模块盘点见 [02-module-inventory.md](./02-module-inventory.md)；目标能力状态见 [04-product-capability-matrix.md](./04-product-capability-matrix.md)。
+
+中英文示例 API 场景见[社区健康服务](../guides/examples/business-scenario-zh.md)与[learning services](../guides/examples/business-scenario-en.md)。它们不是浏览器 E2E 或本机无容器数据库验收；明确未验项及复测步骤见[已知缺口](./known-gaps.md)。
 
 ## 系统边界图
 
@@ -29,14 +32,15 @@ README 中的产品定位不能证明任何运行功能。具体模块盘点见 
 Java 21 / Spring Boot Web 服务（静态 UI、认证、团队/项目、本体文件与可选 AI chat API）
                 │ JDBC + Flyway                         │服务端 session + CSRF
                 ▼
-PostgreSQL 17（账号、邀请、团队、项目、成员、本体版本与审计）
+PostgreSQL 17 或 MySQL 8.4（账号、邀请、团队、项目、成员、本体版本与审计）
 ```
 
 此图描述当前 Web 实现边界。本体端点目前只支持 RDF/XML/Turtle 文件导入、版本快照/查询和导出首个切片；不表示桌面编辑、本体编辑、完整协作功能或最大上传尺寸性能已经实现或验证。
 
 ## 技术选择结论
 
-- 负责人已批准新 Web 平台基础采用 Java 21、Spring Boot 3、PostgreSQL/Flyway；React + TypeScript Web UI 与 OWLAPI 本体解析现已实现首个切片。项目栈获批及代码实现不等于生产部署、完整功能或全部技术边界通过验证。
+- Web 平台使用 Java 21、Spring Boot 3、Flyway，现可通过 `DB_VENDOR` 选择 PostgreSQL 17 或 MySQL 8.4；React + TypeScript Web UI 与 OWLAPI 本体解析现已实现首个切片。数据库集成测试通过不等于生产部署、跨引擎迁移或全部技术边界通过验证。
+- 本地开发可在不运行容器的情况下由 Maven 启动后端、由 Vite 启动前端，并连接本机 PostgreSQL/MySQL；生产 Compose 部署仍按原来的独立配置运行。dev/prod 共享业务代码，profile 仅覆盖诊断、连接参数和部署环境。当前开发主机未安装原生数据库，因此此工作流的数据库实跑尚未验收。
 - 已新增 Web foundation 模块的 Maven POM、服务入口、环境化数据库连接、Flyway 自动配置、只暴露状态的 Actuator readiness 和本地 Compose 配置。readiness health group 同时包含 Spring readiness state 与数据库；健康端点不展示组件细节。（SOURCE-OBSERVED；集成测试及 standalone runtime 已验证）
 - Compose 服务互联依赖本次 Docker bridge 网络；应用容器无法连接数据库时会 fail closed，healthcheck/`--wait` 明确失败。standalone host-network 成功不能替代 Compose 部署验收。（VERIFIED）
 - 本地认证、团队/项目元数据和基础对象级授权已实现并经有限路径集成测试；账户恢复、暴力尝试防护、持久化/共享会话、完整角色矩阵及本体 API 的完整功能/安全验收仍未完成。首个本体 API 小样例路径已有集成测试。（VERIFIED / UNVERIFIED）

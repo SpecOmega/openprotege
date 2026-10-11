@@ -4,7 +4,7 @@
 
 > **项目阶段：Web 工作区、后端 API 与首个本体文件/AI chat/推理切片**
 >
-> 当前已实现 Spring Boot/PostgreSQL 基础、本地账号邀请/会话、团队/项目 API、React Web 工作区、RDF/XML/Turtle 本体文件导入/版本/导出/历史版本恢复、HermiT OWL 2 DL profile/一致性/解释/类层级/个体分类及临时 SWRL 规则推理切片，以及默认关闭且服务端配置密钥的 OpenAI-compatible AI chat。桌面端、本体编辑、格式往返验收、最大文件资源测试、完整协作功能、浏览器 E2E 及 Compose bridge 部署验收尚未完成。
+> 当前已实现 Spring Boot/Web 基础，可配置 PostgreSQL 或 MySQL 数据库，本地账号邀请/会话、团队/项目 API、React Web 工作区、RDF/XML/Turtle 本体文件导入/版本/导出/历史版本恢复、HermiT OWL 2 DL profile/一致性/解释/类层级/个体分类及临时 SWRL 规则推理切片，以及默认关闭且服务端配置密钥的 OpenAI-compatible AI chat。桌面端、本体编辑、格式往返验收、最大文件资源测试、完整协作功能、浏览器 E2E 及 Compose bridge 部署验收尚未完成。
 
 **语言：** 中文 | [English](README.en.md)
 
@@ -27,7 +27,7 @@ OpenProtégé 的目标是支持个人与团队用户开展本体工程，并逐
 
 当前范围与边界：
 
-- 已添加 Java 21 / Spring Boot 3 服务、PostgreSQL 17、Flyway schema、Actuator readiness、显式首管理员引导、本地会话/CSRF、一次性邀请、团队/项目 API 与基础服务端角色校验。PostgreSQL Testcontainers 测试通过，覆盖邀请复用拒绝、会话/CSRF/logout、团队与项目隔离边界；Compose bridge 仍受当前执行环境阻塞。
+- 已添加 Java 21 / Spring Boot 3 服务、PostgreSQL 17/MySQL 8.4 可选后端、独立 Flyway migration、Actuator readiness、显式首管理员引导、本地会话/CSRF、一次性邀请、团队/项目 API 与基础服务端角色校验。PostgreSQL 与 MySQL Testcontainers 集成测试通过；Compose bridge 在当前执行环境中仍不能完成端到端运行验收。
 - Web UI 已包含本地登录/邀请接受、团队/项目列表与创建、项目成员设置、本体快照导入/版本浏览/文件下载/格式转换和将历史版本恢复为新快照，以及 AI chat。恢复和导入仅能由 Owner/Admin/Editor 执行，不覆盖旧版本。具体浏览器流程尚未做 E2E 验收；本体实体编辑/版本删除、桌面应用、完整账户恢复/防暴力破解机制和生产级多实例会话方案未实现。
 - 本体解析有小型集成样例；Pizza 本体往返保真、500 MiB 最大尺寸下的性能与资源安全尚未验证。
 - 推理首版使用 HermiT 提供 OWL 2 DL profile/一致性检查、不可满足类与全局不一致解释、目标类层级查询、个体自动分类和单次只读 SWRL 规则应用；Web 提供 HermiT 启动、Ctrl+R/Cmd+R 快捷键及 Reasoner/Rules 面板。服务端单 worker、100,000 公理和 60 秒默认上限；全局冲突解释最多检查 2,000 个逻辑公理。功能单元测试覆盖有效 profile、冲突解释、个体分类和 SWRL 推断；超时取消、并发压力、大型/恶意本体资源消耗及浏览器 E2E 未验收。
@@ -45,6 +45,9 @@ OpenProtégé 的目标是支持个人与团队用户开展本体工程，并逐
 | [用例草案](docs/requirements/use-cases.md) | 个人编辑、团队项目、文件交换和 AI 辅助场景 |
 | [验收标准草案](docs/requirements/acceptance-criteria.md) | 未来可执行的验收条件；Web 基础项 AC-13 已有测试证据，其他产品功能仍未验证 |
 | [需求追踪矩阵](docs/requirements/traceability-matrix.csv) | 需求到验收项和实现状态的追踪 |
+| [开发与部署保姆级指南](docs/guides/development-and-deployment.md) | 从工具安装、本机数据库初始化、dev 前后端启动，到 PostgreSQL/MySQL Compose 部署、备份和故障排查 |
+| [中文端到端开发场景](docs/guides/examples/business-scenario-zh.md) | 社区健康服务本体、角色权限及可执行 API 全流程；标注 UI/E2E 验收边界 |
+| [English end-to-end developer scenario](docs/guides/examples/business-scenario-en.md) | Learning ontology, role permissions, executable API workflow, and UI/E2E limits |
 | [身份/团队/项目数据模型](docs/architecture/data-model.md) | 首版数据实体、权限边界与待验证项 |
 | [ADR-0002](docs/architecture/adr/0002-identity-team-project-authorization.md) | 身份认证与项目授权实现基线及验收门槛 |
 | [工程审计与阶段报告](docs/engineering/README.md) | 仓库基线、架构盘点、构建/测试状态、安全、上游、风险和路线图 |
@@ -53,14 +56,51 @@ OpenProtégé 的目标是支持个人与团队用户开展本体工程，并逐
 
 ## 开发、构建与测试
 
-Web 服务模块要求 Docker Engine/Compose v2；浏览器前端使用 Node.js 22+。前端可单独构建：
+本地开发运行不依赖 Docker；需要 Java 21、Maven 3.9+、Node.js 22+，以及本机安装并运行的 PostgreSQL 17 或 MySQL 8.4。Docker Engine/Compose v2 仅用于生产式容器部署和可选的容器化测试。
+
+前端可单独构建：
 
 ```sh
 npm ci --prefix web
 npm --prefix web run dev
 ```
 
-Vite 开发服务器将 `/api` 转发至 `http://localhost:8080`。生产 Compose 镜像会构建前端并由 Spring Boot 同源提供静态文件。Maven 服务端测试（含 PostgreSQL Testcontainers 集成测试）使用 Docker API `1.40`：
+### 本地开发与调试
+
+完整的逐步安装、建库、运行、登录和排错过程请先阅读[开发与部署保姆级指南](docs/guides/development-and-deployment.md)。dev 直接连接本机 PostgreSQL/MySQL，不依赖容器；生产 Compose 的 `prod` 配置不变。
+
+```sh
+cp .env.dev.example .env
+# 编辑 .env，填入本机数据库账户及首次管理员信息；先启动本机数据库。
+set -a; . ./.env; set +a
+mvn -f server/pom.xml spring-boot:run
+# 另开终端
+npm ci --prefix web
+npm --prefix web run dev
+```
+
+后端默认监听 `http://localhost:8080`，Vite 前端默认监听 `http://localhost:5173`。VS Code F5 可启动前后端；Windows PowerShell 启动步骤和 PostgreSQL/MySQL 建库 SQL 见[完整指南](docs/guides/development-and-deployment.md)。开发时访问 Vite 地址；生产 Docker 镜像由后端同源提供 Web 页面。
+
+### PostgreSQL / MySQL 切换
+
+PostgreSQL 17 是默认开发和生产选择。开发时在 `.env` 中将 `DB_VENDOR` 设为 `postgres` 或 `mysql`，`DB_HOST` 指向本机数据库，`DB_PORT` 使用数据库监听端口（PostgreSQL 默认 5432，MySQL 默认 3306）；两个引擎使用各自的 JDBC 驱动和 Flyway migration。MySQL 本体文件使用 `LONGBLOB`，UUID 以规范文本形式存储。本地切换数据库不迁移数据，须先备份并分别配置数据库账户。
+
+生产 Compose 可通过 `.env` 切换至 MySQL 8.4；生产数据库容器的数据卷必须专用，不能把同一个数据卷在 PostgreSQL 与 MySQL 之间共用。MySQL Compose 示例设置如下：
+
+```dotenv
+APP_PROFILE=prod
+DB_VENDOR=mysql
+DB_IMAGE=mysql:8.4
+DB_PORT=3306
+DB_CONTAINER_PORT=3306
+DB_VOLUME=mysql_data
+DB_DATA_PATH=/var/lib/mysql
+MYSQL_ROOT_PASSWORD=<独立的强 root 密码>
+```
+
+`DB_USER`、`DB_PASSWORD`、`DB_NAME`、管理员引导配置沿用 `.env`。这个切换只针对新建数据库，不是 PostgreSQL 到 MySQL 的数据迁移工具。运行 `docker compose up --build --wait` 前备份现有数据并确认 `DB_VOLUME` 指向目标数据库专用卷。
+
+Maven 服务端测试（含 PostgreSQL Testcontainers 集成测试）使用 Docker API `1.40`：
 
 ```sh
 mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
@@ -68,19 +108,18 @@ mvn -B -ntp -Dapi.version=1.40 -f server/pom.xml test
 
 ### 生产 Compose 部署（本机）
 
-在仓库根目录执行以下命令，并在启动前编辑 `.env`，设置数据库用户/强密码及首管理员邮箱/强密码（管理员密码至少 12 个字符）：
+完整 PostgreSQL/MySQL 配置、启动验证、日志查看和数据保护步骤见[生产部署章节](docs/guides/development-and-deployment.md#九使用-docker-compose-部署生产模式)。概览命令如下：
 
 ```sh
 cp .env.example .env
 chmod 600 .env
-# Set DB_USER, DB_PASSWORD, ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD in .env.
+# 编辑 .env：设置独立的数据库密码和首管理员邮箱/密码，密码 12–128 个字符。
+docker compose config --quiet
 docker compose up --build --wait
 curl --fail http://127.0.0.1:8080/actuator/health/readiness
 ```
 
-应用和数据库端口默认只绑定到 `127.0.0.1`；外部访问应通过已配置 TLS 的反向代理，勿直接暴露容器端口。管理员账号只在空数据库首次启动时引导创建。确认管理员创建成功后，从 `.env` 删除 `ADMIN_BOOTSTRAP_PASSWORD`，并妥善保管数据库密码。管理员可在 Web 管理区签发一次性邀请令牌；服务不会发送邮件，需通过安全渠道交给受邀用户。停止服务使用 `docker compose down`，默认保留数据库卷；不要执行 `down --volumes`，除非确实要删除所有持久化数据库数据。
-
-首次启动空数据库还须设置 `ADMIN_BOOTSTRAP_EMAIL` 和 `ADMIN_BOOTSTRAP_PASSWORD`，不得使用仓库默认凭证。本体上传默认上限为 500 MiB，可通过 `OPENPROTEGE_ONTOLOGY_MAX_FILE_SIZE` 调整；该上限不是最大文件性能通过的证据。推理限制可通过 `OPENPROTEGE_REASONING_MAX_AXIOMS`（默认 100000）和 `OPENPROTEGE_REASONING_TIMEOUT`（默认 `60s`）调整；axiom 上限在解析后检查，不是解析期内存限制。AI 可选配置：`OPENPROTEGE_AI_ENABLED=true`、`OPENPROTEGE_AI_PROVIDER=deepseek`、`OPENPROTEGE_AI_BASE_URL=https://api.deepseek.com/v1`、`OPENPROTEGE_AI_MODEL=deepseek-chat`、`OPENPROTEGE_AI_API_KEY=<server-side secret>`。其它 OpenAI-compatible 服务可覆盖 provider、base URL 和 model。API key 仅通过部署环境传给服务端，切勿放入 Web 配置、提交至仓库或发给客户端。Compose bridge、AI 外发数据政策和功能边界见[工程文档](docs/engineering/README.md)。
+应用和数据库端口默认只绑定到 `127.0.0.1`。管理员只在空数据库首次启动时引导创建；登录成功后移除 bootstrap 密码。`docker compose down` 默认保留命名数据库卷，删除卷会造成数据丢失。对外服务前须另行配置 TLS 反向代理、访问控制与备份恢复；这些不会由上述命令自动配置。上传限制、推理上限、可选 AI 和当前部署验收限制见[完整指南](docs/guides/development-and-deployment.md)及[工程文档索引](docs/engineering/README.md)。
 
 ## 上游与许可证
 

@@ -23,6 +23,8 @@ Stage 0 快照的仓库没有应用源码、依赖清单、构建/测试脚本�
 
 当前工作树新增 `server/` Maven/Spring Boot 模块与 `compose.yaml`，因此上面的“无应用入口”只描述 Stage 0 快照，不描述当前工作树。
 
+本机开发运行使用安装在宿主机上的 PostgreSQL 17 或 MySQL 8.4；不要求 Docker/容器。后端使用 `mvn -f server/pom.xml spring-boot:run`，前端使用 `npm ci --prefix web`（首次安装）及 `npm --prefix web run dev`。Docker 仍是 Testcontainers 集成测试和生产 Compose 部署的可选/独立需求；`APP_PROFILE=prod` 与生产 Compose 配置不变。原生本机数据库端到端验收跟踪于 AC-21；逐步操作手册见[开发与部署指南](../guides/development-and-deployment.md)。
+
 | 检查 | 命令 | 结果 |
 |---|---|---|
 | Docker/Compose 配置 | `DB_USER=openprotege DB_PASSWORD='[redacted local test value]' docker compose config --quiet` | 退出码 0。 |
